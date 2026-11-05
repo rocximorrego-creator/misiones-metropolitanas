@@ -1,0 +1,170 @@
+{
+ "M1_areas_influencia": {
+  "tipo": "pol",
+  "color": "#BEDCF5",
+  "tam": 0.8,
+  "transp": 45,
+  "etiqueta": "Área de influencia (área de servicio transporte rural integrado)"
+ },
+ "M1_corredores_intervencion": {
+  "tipo": "lin",
+  "color": "#3C5AAA",
+  "tam": 6.0,
+  "transp": 30,
+  "etiqueta": "Corredor de intervención priorizado"
+ },
+ "M1_ciclovias": {
+  "tipo": "lin",
+  "color": "#78286E",
+  "tam": 2.0,
+  "transp": 0,
+  "etiqueta": "Trazados y conexiones de ciclovías"
+ },
+ "M1_recorridos_TP_rural": {
+  "tipo": "lin",
+  "color": "#28285A",
+  "tam": 1.6,
+  "transp": 0,
+  "etiqueta": "Recorridos de Transporte Público Rural"
+ },
+ "M1_puntos_conexion_TP_rural": {
+  "tipo": "pt",
+  "color": "#4696DC",
+  "tam": 8.0,
+  "transp": 0,
+  "etiqueta": "Punto de conexión TP rural / centro de intercambio"
+ },
+ "M1_estaciones_metro_intermodales": {
+  "tipo": "pt",
+  "color": "#2D2D64",
+  "tam": 6.0,
+  "transp": 0,
+  "etiqueta": "Estación de metro / intermodal sobre corredor"
+ },
+ "M1_puntos_destacados": {
+  "tipo": "pt",
+  "color": "#7D0FCD",
+  "tam": 7.0,
+  "transp": 0,
+  "etiqueta": "Punto destacado de las iniciativas (recorridos peatonales y entornos de estaciones)"
+ },
+ "M2_bordes_autopistas_ferroviarios": {
+  "tipo": "lin",
+  "color": "#F09696",
+  "tam": 5.0,
+  "transp": 20,
+  "etiqueta": "Mejoramiento de bordes de autopistas y ferroviarios"
+ },
+ "M2_entornos_estaciones": {
+  "tipo": "pt",
+  "color": "#6E0F14",
+  "tam": 7.0,
+  "transp": 0,
+  "etiqueta": "Entornos de estaciones de metro / trenes / intermodales"
+ },
+ "M2_entornos_hospitales": {
+  "tipo": "pt",
+  "color": "#DC1E1E",
+  "tam": 10.0,
+  "transp": 0,
+  "etiqueta": "Mejoramiento de entorno de hospitales prioritarios"
+ },
+ "M2_calles_iluminadas": {
+  "tipo": "pt",
+  "color": "#FA3C3C",
+  "tam": 8.0,
+  "transp": 0,
+  "etiqueta": "Programa calles iluminadas"
+ },
+ "M3_areas_influencia_drenaje": {
+  "tipo": "pol",
+  "color": "#B4C8E1",
+  "tam": 0.5,
+  "transp": 40,
+  "etiqueta": "Área de influencia / área prioritaria de drenaje y resiliencia hídrica"
+ },
+ "M3_corredores_fluviales": {
+  "tipo": "lin",
+  "color": "#78AF6E",
+  "tam": 5.0,
+  "transp": 15,
+  "etiqueta": "Corredor fluvial verde-azul (corredores ecológicos, ríos, humedales y quebradas)"
+ },
+ "M3_parques_areas_verdes": {
+  "tipo": "pol",
+  "color": "#196905",
+  "tam": 0.5,
+  "transp": 0,
+  "etiqueta": "Parques y áreas verdes"
+ },
+ "M3_parques_corredores_lineales": {
+  "tipo": "lin",
+  "color": "#196905",
+  "tam": 3.0,
+  "transp": 0,
+  "etiqueta": "Parque o corredor verde lineal"
+ },
+ "M3_puntos_intervencion": {
+  "tipo": "pt",
+  "color": "#3C6E96",
+  "tam": 4.0,
+  "transp": 0,
+  "etiqueta": "Punto de intervención"
+ },
+ "M3_puntos_iniciativa05": {
+  "tipo": "pt",
+  "color": "#2878A5",
+  "tam": 9.0,
+  "transp": 0,
+  "etiqueta": "Puntos rotulados 05"
+ },
+ "M4_territorios_desarrollo_areas": {
+  "tipo": "pol",
+  "color": "#FAD778",
+  "tam": 0.5,
+  "transp": 40,
+  "etiqueta": "Territorio de menor desarrollo metropolitano (franja)"
+ },
+ "M4_areas_influencia_subcentros": {
+  "tipo": "pol",
+  "color": "#F0A06E",
+  "tam": 0.5,
+  "transp": 40,
+  "etiqueta": "Área de influencia - subcentro y nodo metropolitano"
+ },
+ "M4_conexion_01_02": {
+  "tipo": "lin",
+  "color": "#243168",
+  "tam": 1.5,
+  "transp": 0,
+  "etiqueta": "Conexión entre subcentros"
+ },
+ "M4_territorios_desarrollo": {
+  "tipo": "pt",
+  "color": "#F0AA1E",
+  "tam": 8.0,
+  "transp": 0,
+  "etiqueta": "Plan de desarrollo territorial (nodo)"
+ },
+ "M4_subcentros_distritos": {
+  "tipo": "pt",
+  "color": "#E65A0A",
+  "tam": 10.0,
+  "transp": 0,
+  "etiqueta": "Subcentro y nodo metropolitano"
+ },
+ "V_areas_agricolas_prioritarias": {
+  "tipo": "pol",
+  "color": "#AABE6E",
+  "tam": 0.5,
+  "transp": 45,
+  "etiqueta": "Áreas agrícolas prioritarias"
+ },
+ "V_corredores_ecologicos": {
+  "tipo": "lin",
+  "color": "#6EA564",
+  "tam": 4.0,
+  "transp": 10,
+  "etiqueta": "Corredores ecológicos, ríos, humedales y quebradas"
+ }
+}

@@ -4,12 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Misiones Metropolitanas AMS</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..900;1,6..12,300&family=Roboto+Slab:wght@100..700&display=swap">
+<link rel="stylesheet" href="assets/leaflet/leaflet.css">
+<script src="assets/leaflet/leaflet.js"></script>
+<script src="config.js"></script>
 <style>
-/* Página del documento MDG llevada a pantalla: encabezado corrido, banda de misiones, ficha (columna de color + contenido), mapa y gobernanza. Tema único claro, como el impreso. */
+/* Página del documento MDG llevada a pantalla. Los datos vienen de config.js (CSV, Google Sheets o ArcGIS). */
 :root{
   color-scheme: light;
   --m1:#106BB4; --m2:#EA5E5A; --m3:#8CA03A; --m4:#F8AA2A;
@@ -80,30 +82,36 @@ h2.sec{font-family:var(--sans);font-weight:700;font-size:18px;color:var(--c);mar
 .chip{font-size:11.5px;font-weight:700;letter-spacing:.02em;padding:2px 8px;border-radius:20px;border:1px solid currentColor}
 .chip.up{color:#2F7D4F}.chip.down{color:#B4462F}.chip.q{color:var(--ink-2)}
 .meta .filt{position:absolute;top:8px;right:8px;font-size:11px;color:var(--c);font-weight:700}
+.meta .src{font-size:11px;color:var(--ink-2);opacity:.85}
+.chip.err{color:#B4462F;border-style:dashed}
 
-/* Mapa */
+/* Mapa interactivo */
 .mapgrid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:20px;align-items:start}
 @media (max-width:980px){.mapgrid{grid-template-columns:minmax(0,1fr)}}
 .maphead{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-.mapbox{position:relative;border:1px solid var(--rule);overflow:hidden;background:#EEF0F3;touch-action:none;cursor:grab;user-select:none}
-.mapbox.drag{cursor:grabbing}
-.stage{position:relative;transform-origin:0 0;will-change:transform}
-.stage img{display:block;width:100%;height:auto;max-width:none;pointer-events:none}
-.hot{position:absolute;width:calc(30px / var(--k,1));height:calc(30px / var(--k,1));margin:calc(-15px / var(--k,1)) 0 0 calc(-15px / var(--k,1));border-radius:50%;border:calc(1.5px / var(--k,1)) dashed var(--c);background:transparent;padding:0;opacity:.55;transition:opacity .15s}
-.hot.dim{opacity:0;pointer-events:none}
-.hot:hover,.hot.on{opacity:1;border-style:solid;border-width:calc(3px / var(--k,1));background:color-mix(in srgb,var(--c) 18%,transparent)}
-.hot.on{animation:pulse 1.4s ease-out infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 55%,transparent)}100%{box-shadow:0 0 0 calc(18px / var(--k,1)) transparent}}
-@media (prefers-reduced-motion:reduce){.hot.on{animation:none}}
-.zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px;z-index:3}
-.zoom button{width:34px;height:34px;border:1px solid var(--rule);background:#fff;font-weight:700;font-size:18px;line-height:1}
-.zoom button:hover{border-color:var(--navy)}
-.tip{position:absolute;z-index:4;max-width:260px;background:#fff;border:1px solid var(--rule);border-top:3px solid var(--c);padding:8px 10px;font-size:13px;line-height:1.35;pointer-events:none;box-shadow:0 4px 14px rgba(29,31,38,.14)}
-.tip b{color:var(--c)}
-.leyenda{margin-top:10px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
-.leyenda .lt{font-family:var(--slab);font-weight:500;color:var(--ink);text-decoration:underline;text-underline-offset:3px;font-size:13px;letter-spacing:.04em}
-.leyenda img{max-width:240px;width:100%;border:1px solid var(--rule)}
-
+.lmap{height:560px;border:1px solid var(--rule);background:#EEF0F3;z-index:0}
+@media (max-width:700px){.lmap{height:420px}}
+.maptools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:8px 0 0;font-size:13px;color:var(--ink-2)}
+.maptools label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.maptools input[type=range]{width:110px;accent-color:var(--c)}
+.nlab{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid var(--c);color:var(--ink);font:700 11px/1 var(--sans);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+.nlab.on{background:var(--c);color:#fff;transform:scale(1.25)}
+.nlab.dim{opacity:.25}
+.leaflet-container{font-family:var(--sans)}
+.leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.35}
+.leaflet-popup-content b{color:var(--c)}
+.pop .k{color:var(--ink-2);font-size:12px}
+.pop .go{margin-top:6px;border:1px solid var(--c);background:#fff;color:var(--c);font-weight:700;font-size:12px;padding:3px 9px;border-radius:14px}
+.lbtn{width:34px;height:34px;background:#fff;border:0;font-size:15px;font-weight:700;line-height:34px;text-align:center;cursor:pointer}
+.leg{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 16px;margin-top:10px;font-size:12.5px;color:var(--ink-2)}
+.leg span{display:flex;align-items:center;gap:8px;line-height:1.25}
+.leg i{flex:none;display:inline-block;width:22px;height:12px}
+.leg i.pt{width:12px;height:12px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.2);margin-inline:5px}
+.leg i.lin{height:4px}
+details.legdoc{margin-top:8px;font-size:13px}
+details.legdoc img{max-width:260px;width:100%;border:1px solid var(--rule);margin-top:6px}
+.banner{margin:20px 0;padding:14px 16px;border:1px solid #E7B4A9;background:#FDF3F1;color:#7A2E1F;font-size:14px}
+.loading{padding:40px 0;color:var(--ink-2)}
 .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .fbtn{border:1px solid var(--c);background:#fff;color:var(--c);font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:20px}
 .fbtn[aria-pressed="true"]{background:var(--c);color:#fff}
@@ -156,150 +164,158 @@ h2.sec{font-family:var(--sans);font-weight:700;font-size:18px;color:var(--c);mar
 </head>
 <body>
 
-
 <div class="wrap">
   <header class="running"><span>Modelo de Gobernanza Metropolitana</span><span>Área Metropolitana de Santiago</span></header>
   <div class="hero">
     <div>
       <span class="tag" style="--c:var(--navy)">Visión:</span>
-      <h1>Misiones metropolitanas al 2041</h1>
-      <p>Cuatro misiones, 120 iniciativas y sus metas por eje de acción. Elige una misión para ver su compromiso, metas, iniciativas georreferenciadas y modelo de gobernanza.</p>
+      <h1 id="h1">Misiones metropolitanas</h1>
+      <p id="hero-p">Elige una misión para ver su compromiso, metas, iniciativas georreferenciadas y modelo de gobernanza.</p>
     </div>
   </div>
   <nav class="tabs" role="tablist" id="tabs"></nav>
-  <main id="main"></main>
-  <footer class="foot"><span>Fuente: Modelo de Gobernanza Metropolitana, págs. 74–82. Elaboración propia.</span><span>Mapas: solo se muestran las iniciativas que tienen georreferenciación disponible.</span></footer>
+  <main id="main"><div class="loading">Cargando datos…</div></main>
+  <footer class="foot"><span>Fuente: Modelo de Gobernanza Metropolitana, págs. 74–82. Elaboración propia.</span><span>Mapas: solo se muestran las iniciativas que tienen georreferenciación disponible (precisión aprox. 250–500 m).</span></footer>
 </div>
 
 <script>
 const ICONS = {"gobernador": "<svg viewBox=\"0 0 14 14\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M12.54 1.67L7.02 7.20L1.50 1.67L12.54 1.67\" fill=\"#FF1C3D\"/><path d=\"M12.54 12.72L1.50 12.72L7.02 7.20L12.54 12.72\" fill=\"#FF1C3D\"/></svg>", "consejo": "<svg viewBox=\"0 0 14 14\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M12.39 1.09L12.39 12.75C9.36 12.75 6.91 10.14 6.91 6.92C6.91 3.70 9.36 1.09 12.39 1.09\" fill=\"#FF1C3D\"/><path d=\"M6.91 6.86C6.91 10.08 4.46 12.69 1.44 12.69L1.44 1.03C4.46 1.03 6.91 3.64 6.91 6.86\" fill=\"#FF1C3D\"/></svg>", "cca": "<svg viewBox=\"0 0 14 14\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1.31 12.63L7.20 12.63L12.39 7.15L12.39 0.91L6.49 0.91L1.31 6.40L1.31 12.63\" fill=\"#FF1C3D\"/></svg>", "diplader": "<svg viewBox=\"0 0 13 14\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0.86 12.72L6.38 12.72C9.43 12.72 11.91 10.24 11.91 7.20C11.91 4.15 9.43 1.67 6.38 1.67C3.34 1.67 0.86 4.15 0.86 7.20L0.86 12.72\" fill=\"#FF1C3D\"/></svg>", "dam": "<svg viewBox=\"0 0 13 15\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1.45 5.56L2.34 4.02L5.79 6.02L5.79 2.03L7.57 2.03L7.57 6.02L11.02 4.02L11.91 5.56L8.45 7.56L11.91 9.55L11.02 11.09L7.57 9.09L7.57 13.08L5.79 13.08L5.79 9.09L2.34 11.09L1.45 9.55L4.90 7.56L1.45 5.56\" fill=\"#FF1C3D\"/></svg>", "divisiones": "<svg viewBox=\"0 0 13 14\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0.72 6.71C4.16 7.87 5.10 8.81 6.26 12.25C7.43 8.81 8.37 7.87 11.80 6.71C8.37 5.55 7.43 4.61 6.26 1.17C5.10 4.61 4.16 5.55 0.72 6.71\" fill=\"#FF1C3D\"/></svg>", "municipios": "<svg viewBox=\"0 0 18 19\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M5.88 9.89C0.82 14.39 4.47 18.04 8.97 12.98C13.47 18.04 17.12 14.39 12.06 9.89C17.12 5.39 13.47 1.74 8.97 6.80C4.47 1.74 0.82 5.39 5.88 9.89\" fill=\"#FF1C3D\"/></svg>", "servicios": "<svg viewBox=\"0 0 14 14\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M11.17 3.55L3.34 11.37L11.17 3.55\" fill=\"#FF1C3D\"/><path d=\"M9.01 2.00L1.80 9.22C1.61 8.74 1.48 8.23 1.43 7.70L7.49 1.63C8.02 1.68 8.53 1.81 9.01 2.00\" fill=\"#FF1C3D\"/><path d=\"M5.52 1.79L1.59 5.73C2.10 3.81 3.60 2.30 5.52 1.79\" fill=\"#FF1C3D\"/><path d=\"M7.55 12.68L12.47 7.76C12.19 10.34 10.14 12.40 7.55 12.68\" fill=\"#FF1C3D\"/><path d=\"M12.39 6.03L5.82 12.59C5.33 12.49 4.86 12.32 4.43 12.10L11.89 4.63C12.12 5.07 12.29 5.54 12.39 6.03\" fill=\"#FF1C3D\"/><path d=\"M10.18 2.64L2.44 10.39L10.18 2.64\" fill=\"#FF1C3D\"/><path d=\"M11.17 3.55L3.34 11.37C3.00 11.08 2.70 10.75 2.44 10.39L10.18 2.64C10.54 2.90 10.88 3.21 11.17 3.55\" fill=\"#FF1C3D\"/></svg>", "cosoc": "<svg viewBox=\"0 0 14 14\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M6.95 3.89C8.89 3.89 10.48 5.47 10.48 7.42C10.48 9.36 8.89 10.94 6.95 10.94C5.00 10.94 3.42 9.36 3.42 7.42C3.42 5.47 5.00 3.89 6.95 3.89M6.95 1.89C3.90 1.89 1.43 4.37 1.43 7.42C1.43 10.46 3.90 12.94 6.95 12.94C10.00 12.94 12.47 10.46 12.47 7.42C12.47 4.37 10.00 1.89 6.95 1.89\" fill=\"#FF1C3D\"/></svg>"};
-const MAPDIM = {m1:[1969,1415], m2:[1312,941], m3:[1969,1415], m4:[1974,1415]};
-const M = [
- {id:1, key:"mision1", color:"var(--m1)", hex:"#106BB4", name:"Santiago integrado y accesible", short:"Integrado y accesible",
-  obj:"Construir un Santiago más próximo, multimodal y accesible", total:39, cartera:27, nuevas:12,
-  comp:"El AMS habrá implementado un sistema regional de movilidad integrado y multimodal: conectando los territorios rurales y periféricos con la Red Metropolitana de Movilidad, ampliando la caminabilidad y la continuidad de la red de ciclovías, incorporando criterios de Desarrollo Orientado al Transporte en los ejes metropolitanos y consolidando la coordinación intersectorial permanente. Con esta misión se esperan beneficios relacionados con: desplazamientos más accesibles, mejores espacios públicos y conexiones más integradas entre las comunas de Santiago.",
-  metas:[
-   {e:1,t:"Integración urbano-rural",goal:"Al 2041: 100%",now:"Actual: 75%",ind:"Itinerarios de TP rural operativos",a:75,g:100,max:100,u:"%",dir:"up"},
-   {e:2,t:"Movilidad activa",goal:"Al 2041: 45%",now:"Actual: 38,2%",ind:"Viajes realizados a pie + bicicleta",a:38.2,g:45,max:100,u:"%",dir:"up"},
-   {e:3,t:"Ejes metropolitanos",goal:"Al 2041: 15%",now:"Actual: 23%",ind:"Viajes por trabajo, estudio o servicios sobre 60 minutos",a:23,g:15,max:100,u:"%",dir:"down"},
-   {e:4,t:"Gobernanza de movilidad y transporte",goal:"Al 2041: Mesa metropolitana en operación",now:"Actual: Sin mecanismo",q:true}],
-  esp:["MTT / DTPM","MINVU / SERVIU","MOP"], cosoc:true,
-  ejes:{1:"Integración urbano rural",2:"Movilidad activa",3:"Ejes metropolitanos"},
-  ini:[
-   [1,2,"Ampliación de servicios de TP rural y localidades aisladas",[[947,138],[708,1155],[143,1222],[1143,1328]]],
-   [2,10,"Nueva ciclovía Gran Avenida",[[1277,707]]],
-   [2,16,"Ciclovía conexión oriente-poniente (PAC, San Miguel, San Joaquín y Macul)",[[1235,770]]],
-   [2,17,"Ciclovía eje Alameda (Lo Prado, Estación Central y Santiago)",[[1157,682]]],
-   [2,19,"Ciclovía ruta La Chimba (Renca, Independencia y Recoleta)",[[1217,577]]],
-   [3,25,"Eje Alameda - bandejón central, Matucana y polígono Diagonal Paraguay",[[1238,660]]],
-   [3,26,"Eje Gran Avenida - arborización, refugios climáticos y entornos de escuelas y hospitales",[[1253,837]]],
-   [3,27,"Eje Vicuña Mackenna - arborización, entornos de metro y nodos activos",[[1395,875]]],
-   [3,28,"Eje Santa Rosa - eje Lo Ovalle tramos 2 y 3, y entorno futura estación línea 9",[[1304,860]]],
-   [3,30,"Eje San Pablo - tramos 1, 2 y 3 (Santiago, Quinta Normal, Lo Prado y Pudahuel)",[[1040,647]]],
-   [3,31,"Eje Lo Espejo - Lo Espejo y La Cisterna",[[1165,861]]],
-   [3,32,"Eje Carlos Valdovinos - espacio público y eje Clotario Blest",[[1375,747]]],
-   [3,33,"Eje Recoleta - espacio público en Recoleta y Huechuraba",[[1283,556]]],
-   [3,34,"Eje Camino a Melipilla",[[1063,851]]],
-   [3,35,"Eje Lo Blanco - Gabriela - El Peñón (San Bernardo y Puente Alto)",[[1264,996]]],
-   [3,36,"Eje Neptuno",[[1106,678]]]]},
- {id:2, key:"mision2", color:"var(--m2)", hex:"#EA5E5A", name:"Santiago seguro", short:"Seguro",
-  obj:"Reducir las desigualdades territoriales de seguridad", total:14, cartera:6, nuevas:8,
-  comp:"El AMS habrá fortalecido la seguridad de los entornos de las grandes infraestructuras metropolitanas y de los límites intercomunales críticos, reducido la concentración territorial de condiciones de inseguridad, consolidado un sistema integrado de información e inteligencia territorial y establecido mecanismos permanentes de coordinación intersectorial.",
-  metas:[
-   {e:1,t:"Entornos de equipamientos metropolitanos",goal:"Al 2041: máx. 4 de 12",now:"Actual: 8 de 12",ind:"Entornos con altas concentraciones de homicidios",a:8,g:4,max:12,u:"",dir:"down"},
-   {e:2,t:"Límites intercomunales críticos",goal:"Al 2041: máx. 2",now:"Actual: 6",ind:"Límites con actividad delictual relevante y alta tasa de homicidios",a:6,g:2,max:6,u:"",dir:"down"},
-   {e:3,t:"Inteligencia territorial",goal:"Al 2041: 48",now:"Actual: 3",ind:"Comunas integradas al Dpto. de Seguridad",a:3,g:48,max:52,u:"",dir:"up"},
-   {e:4,t:"Gobernanza metropolitana para la seguridad",goal:"Al 2041: Mesa metropolitana en operación",now:"Actual: Sin mecanismo",q:true}],
-  esp:["Subsecretaría de Prevención del Delito y servicios vinculados","Mesa Metropolitana de Seguridad","Unidad regional competente en seguridad"], cosoc:true,
-  ejes:{1:"Entornos de equipamientos metropolitanos",2:"Límites intercomunales críticos"},
-  ini:[
-   [1,1,"Mejoramiento de entorno de hospitales prioritarios (San Borja, Gran Avenida)",[[810,492]]],
-   [1,3,"Entornos de estaciones de metro, trenes e intermodales de alta afluencia",[[936,586],[949,646]]],
-   [1,4,"Programa Calles Iluminadas (Cerro Navia, La Reina y Providencia)",[[753,421],[987,450]]],
-   [2,5,"Mejoramiento de bordes de autopistas urbanas",[[717,183],[687,358],[910,716]]],
-   [2,6,"Mejoramiento de bordes ferroviarios EFE",[[804,452]]]]},
- {id:3, key:"mision3", color:"var(--m3)", hex:"#8CA03A", name:"Santiago verde, azul y resiliente", short:"Verde, azul y resiliente",
-  obj:"Proteger, conectar y regenerar los sistemas naturales y rurales del AMS", total:44, cartera:31, nuevas:13,
-  comp:"El AMS será más verde, resiliente y equitativo: habrá consolidado un sistema regional de infraestructura verde y azul (SIVA) con gestión sostenible de aguas lluvias, reducido el déficit territorial de áreas verdes, protegido los suelos agrícolas y paisajes rurales, avanzado en la valorización de residuos y consolidado la gobernanza intersectorial.",
-  metas:[
-   {e:1,t:"Infraestructura verde y azul",goal:"Al 2041: 100%",now:"Actual: 86,5%",ind:"Comunas del AMS integradas al Sistema metropolitano",a:86.5,g:100,max:100,u:"%",dir:"up"},
-   {e:2,t:"Áreas verdes y espacios públicos metropolitanos",goal:"Al 2041: 52",now:"Actual: 41",ind:"Comunas sobre el promedio de 3,6 m²/hab",a:41,g:52,max:52,u:"",dir:"up"},
-   {e:3,t:"Drenaje sostenible y resiliencia hídrica",goal:"Al 2041: 0",now:"Actual: 10",ind:"En riesgo de inundación por desborde de colectores",a:10,g:0,max:10,u:"",dir:"down"},
-   {e:4,t:"Protección de suelos agrícolas estratégicos",goal:"Al 2041: Incorporar al AMS medidas de protección de suelos agrícolas estratégicos",now:"Actual: +15mil ha",ind:"Superficie bajo presión por expansión urbana",q:true},
-   {e:5,t:"Valorización de residuos",goal:"Al 2041: 30%",now:"Actual: 1,55%",ind:"Valorización de residuos",a:1.55,g:30,max:100,u:"%",dir:"up"},
-   {e:6,t:"Gobernanza metropolitana verde-azul",goal:"Al 2041: Mesa Metropolitana en operación",now:"Actual: Sin mecanismo",q:true}],
-  esp:["Mesa verde-azul y de resiliencia","MMA","MINVU / SERVIU","MOP-DGA/DOH","Organismos ambientales y territoriales"], cosoc:false,
-  ejes:{1:"Plan de infraestructura verde y azul",2:"Áreas verdes y espacios públicos"},
-  ini:[
-   [1,6,"Revegetación de ladera del río Mapocho (PRETEM)",[[1135,545]]],
-   [1,7,"Conservación global de cauces naturales y quebradas de la RM (MOP)",[[974,418],[1560,604],[1568,770],[990,860]]],
-   [1,8,"Corredor ecológico del río Maipo (nueva)",[[1028,1292]]],
-   [1,9,"Corredor ecológico río Mapocho y humedales urbanos",[[816,932]]],
-   [2,13,"Parque Canal Ortuzano - corredor verde urbano",[[1082,698]]],
-   [2,14,"Parque Cerros de Renca - centro de regeneración, sendero y mirador",[[1134,498]]],
-   [2,16,"Parque Metropolitano Norte - caminos, veredas y monitoreo en Parquemet",[[1320,554]]],
-   [2,17,"Parque Tobalaba - calzada Av. San Luis y tramos Bilbao-Ossa",[[1457,705]]],
-   [2,18,"Parques del Río Mapocho - paseo fluvial, puente La Maquena y revegetación",[[1220,592]]],
-   [2,19,"Parque Canal del Carmen - Cerros de Huechuraba",[[1278,434]]],
-   [2,20,"Parque Cordón Manquehue (Etapa 1, parque El Rosal)",[[1393,421]]],
-   [2,22,"Parque Metropolitano Sur - La Platina y La Castrina",[[1315,939]]]]},
- {id:4, key:"mision4", color:"var(--m4)", hex:"#F8AA2A", name:"Santiago policéntrico", short:"Policéntrico",
-  obj:"Descentralizar el desarrollo económico del AMS mediante nuevas centralidades", total:23, cartera:11, nuevas:12,
-  comp:"El AMS habrá avanzado hacia una distribución territorial más equilibrada del empleo, los servicios, la inversión y las oportunidades, mediante la consolidación de subcentralidades metropolitanas, la regeneración de distritos urbanos estratégicos y el desarrollo integral de territorios con oportunidades productivas, logísticas y turísticas. La misión busca acercar empleos y servicios a más territorios, promover inversiones en nuevas centralidades y distritos urbanos, y reducir la concentración de oportunidades en unas pocas comunas de Santiago.",
-  metas:[
-   {e:1,t:"Subcentralidades metropolitanas estratégicas",goal:"Al 2041: 13/13",now:"Actual: 8/13",ind:"Subcentralidades sobre el umbral de diversidad económica",a:8,g:13,max:13,u:"",dir:"up"},
-   {e:2,t:"Distritos urbanos estratégicos de regeneración",goal:"Al 2041: 3",now:"Actual: 0",ind:"Distritos con plan integral, cartera e intervención detonante.",a:0,g:3,max:3,u:"",dir:"up"},
-   {e:3,t:"Territorios de desarrollo metropolitano integral",goal:"Al 2041: 2 comunas con cartera consolidada",now:"Actual: 0 comunas",ind:"Comunas en condición de rezago con priorización (Tiltil y San José de Maipo)",a:0,g:2,max:2,u:"",dir:"up"},
-   {e:4,t:"Gobernanza del desarrollo policéntrico",goal:"Al 2041: Mesa metropolitana en operación",now:"Actual: Sin mecanismo permanente",q:true}],
-  esp:["Mesa de desarrollo policéntrico y territorios estratégicos","Divisiones de desarrollo económico e inversión","Ministerios y servicios económicos/urbanos"], cosoc:false,
-  ejes:{1:"Subcentralidades metropolitanas",2:"Distritos urbanos de regeneración",3:"Territorios de desarrollo metropolitano integral"},
-  ini:[
-   [1,1,"Subcentro Renca Poniente",[[1062,540]]],
-   [1,2,"Subcentro Pudahuel – Aeropuerto",[[1013,650]]],
-   [1,3,"Subcentro Maipú (Camino a Melipilla)",[[1083,888]]],
-   [1,4,"Subcentro El Salto – Ciudad Empresarial",[[1348,540]]],
-   [1,5,"Subcentro productivo y logístico Quilicura – Buenaventura",[[1148,410]]],
-   [1,6,"Subcentro Talagante – Estación",[[743,1205]]],
-   [1,7,"Subcentro logístico Melipilla",[[157,1262]]],
-   [1,8,"Subcentro logístico San Bernardo",[[1172,938]]],
-   [2,9,"Distrito La Chimba - Plan Integral: fachadas patrimoniales, Patronato y ejes Recoleta y Valdivieso",[[1285,638]]],
-   [2,10,"Distrito Terminales - Estación Central - Plan Maestro de Regeneración",[[1210,698]]],
-   [2,11,"Distrito Franklin - Matadero - Plan Maestro y eje conector Biobío",[[1298,742]]],
-   [3,18,"Plan de Fortalecimiento y Desarrollo Territorial de Tiltil",[[795,17]]],
-   [3,19,"Plan Maestro de Desarrollo e Inversión de San José de Maipo",[[1892,1135]]]]}
-];
+const CFG = window.CONFIG || {fuentes:{}};
+const ANIO = CFG.anio_meta || 2041;
 const COMMON = {
   pol:[["Gobernador Regional","gobernador"],["Consejo Regional","consejo"],["CCA","cca"]],
   tec:[["DIPLADER","diplader"],["DAM","dam"]],
   ope:[["Divisiones GORE RM","divisiones"],["Municipios","municipios"],["Servicios sectoriales","servicios"]]
 };
-const fmt = n => String(n).replace(".", ",");
 const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const el = (tag, attrs={}, html) => { const e=document.createElement(tag); for (const [k,v] of Object.entries(attrs)) { if (k==="style") e.style.cssText=v; else e.setAttribute(k,v); } if (html!==undefined) e.innerHTML=html; return e; };
+const fmt = n => { if (!isFinite(n)) return "—"; const r = Math.round(n*100)/100; return String(r).replace(".", ","); };
 
-/* Pestañas */
+/* ---------- Lectura de datos: CSV, Google Sheets o ArcGIS ---------- */
+function toNum(v){
+  if (v===null || v===undefined) return NaN;
+  if (typeof v==="number") return v;
+  let s=String(v).trim().replace(/\s/g,"").replace(/%$/,"");
+  if (!s) return NaN;
+  if (s.includes(",")) s=s.replace(/\./g,"").replace(",",".");
+  return Number(s);
+}
+function parseCSV(text){
+  text = text.replace(/^﻿/,"");
+  const first = text.split(/\r?\n/)[0] || "";
+  const d = (first.split(";").length >= first.split(",").length) ? ";" : ",";
+  const rows=[]; let row=[], cell="", q=false;
+  for (let i=0;i<text.length;i++){
+    const c=text[i];
+    if (q){ if (c==='"'){ if (text[i+1]==='"'){ cell+='"'; i++; } else q=false; } else cell+=c; }
+    else if (c==='"') q=true;
+    else if (c===d){ row.push(cell); cell=""; }
+    else if (c==="\n" || c==="\r"){ if (c==="\r" && text[i+1]==="\n") i++; row.push(cell); rows.push(row); row=[]; cell=""; }
+    else cell+=c;
+  }
+  if (cell!=="" || row.length){ row.push(cell); rows.push(row); }
+  const head = rows.shift().map(h=>h.trim().toLowerCase());
+  return rows.filter(r=>r.some(c=>c.trim()!=="")).map(r=>Object.fromEntries(head.map((h,i)=>[h,(r[i]??"").trim()])));
+}
+const isArcGIS = u => /\/(FeatureServer|MapServer)\/\d+/i.test(u);
+function arcgisQuery(u, geo){
+  if (/\/query/i.test(u)) return u;
+  return u.replace(/\/?$/,"") + "/query?where=1%3D1&outFields=*&returnGeometry=" + (geo?"true":"false") + "&outSR=4326&f=" + (geo?"geojson":"json");
+}
+async function getText(u){
+  const local = !/^https?:/i.test(u);
+  const r = await fetch(local ? u + (u.includes("?")?"&":"?") + "v=" + Date.now() : u, {cache:"no-store"});
+  if (!r.ok) throw new Error(u + " (" + r.status + ")");
+  return r.text();
+}
+async function loadTable(name){
+  const u = CFG.fuentes[name]; if (!u) throw new Error("Falta la fuente '" + name + "' en config.js");
+  if (isArcGIS(u)){
+    const j = JSON.parse(await getText(arcgisQuery(u,false)));
+    if (j.error) throw new Error(u + ": " + j.error.message);
+    return j.features.map(f=>Object.fromEntries(Object.entries(f.attributes).map(([k,v])=>[k.toLowerCase(), v==null?"":v])));
+  }
+  const t = await getText(u);
+  if (/\.json(\?|$)/i.test(u) || /^\s*[\[{]/.test(t)) return JSON.parse(t);
+  return parseCSV(t);
+}
+async function loadGeo(name){
+  const u = CFG.fuentes[name]; if (!u) return {type:"FeatureCollection",features:[]};
+  const j = JSON.parse(await getText(isArcGIS(u) ? arcgisQuery(u,true) : u));
+  j.features.forEach(f=>{ const p=f.properties; for (const k of Object.keys(p)) { const lk=k.toLowerCase(); if (lk!==k){ p[lk]=p[k]; } } if (p.id===undefined && p.id_inic!==undefined) p.id=p.id_inic; });
+  return j;
+}
+
+/* ---------- Armar el modelo a partir de las tablas ---------- */
+let M = [], STY = {}, GEO = {}, BOUNDS = {};
+function unitStr(u){ u=(u||"").trim(); return !u ? "" : (/^[0-9A-Za-zÁÉÍÓÚáéíóúñÑ]/.test(u) ? " "+u : u); }
+function build(t){
+  M = t.misiones.map(r=>{
+    const id = +r.mision_id;
+    return { id, key:"mision"+id, color:r.color||"#243168", hex:r.color||"#243168", name:r.nombre, short:r.nombre_corto||r.nombre,
+      obj:r.objetivo, comp:r.compromiso, total:toNum(r.iniciativas_total)||0, cartera:toNum(r.iniciativas_cartera)||0, nuevas:toNum(r.iniciativas_nuevas)||0,
+      cosoc:/^(s|y|1|true)/i.test(String(r.incluye_cosoc)), metas:[], esp:[], ejes:{}, ini:[] };
+  }).sort((a,b)=>a.id-b.id);
+  const byId = Object.fromEntries(M.map(m=>[m.id,m]));
+  t.metas.forEach(r=>{
+    const m = byId[+r.mision_id]; if (!m) return;
+    const e = +r.eje, u = (r.unidad||"").trim();
+    const meta = { e, t:r.titulo, ind:r.indicador, fecha:r.fecha_dato, fuente:r.fuente_dato };
+    const a = toNum(r.valor_actual), g = toNum(r.valor_meta);
+    const gest = /^gest/i.test(r.tipo||"") || (!isFinite(a) && !isFinite(g));
+    if (gest){
+      meta.q = true;
+      meta.goal = `Al ${ANIO}: ${r.meta_texto || "—"}`;
+      meta.now = `Actual: ${r.actual_texto || "—"}`;
+    } else {
+      meta.a=a; meta.g=g; meta.u=u==="%"?"%":"";
+      meta.dir = /^red|^dism|^baj/i.test(r.sentido||"") ? "down" : "up";
+      let mx = toNum(r.valor_maximo); if (!isFinite(mx) || mx<=0) mx = Math.max(a||0,g||0) || 1;
+      meta.max = Math.max(mx, a||0, g||0);
+      meta.bad = !isFinite(a) || !isFinite(g);
+      meta.goal = `Al ${ANIO}: ${r.meta_texto || ((r.meta_prefijo? r.meta_prefijo.trim()+" " : "") + fmt(g) + unitStr(u))}`;
+      meta.now = `Actual: ${r.actual_texto || (fmt(a) + unitStr(u))}`;
+      meta.uLabel = unitStr(u);
+    }
+    m.metas.push(meta);
+  });
+  M.forEach(m=>m.metas.sort((x,y)=>x.e-y.e));
+  t.ejes.forEach(r=>{ const m=byId[+r.mision_id]; if (m) m.ejes[+r.eje]=r.nombre; });
+  t.iniciativas.forEach(r=>{ const m=byId[+r.mision_id]; if (m) m.ini.push([r.eje===""?0:+r.eje, +r.numero, r.nombre]); });
+  t.actores.forEach(r=>{ const m=byId[+r.mision_id]; if (m && r.actor) m.esp.push(r.actor); });
+  M.forEach(m=>{ if (m.ini.some(i=>i[0]===0)) m.ejes[0]="Otras rotuladas en el mapa (sin descripción en el listado)"; });
+}
+
+/* ---------- Pestañas ---------- */
 const tabs = $("#tabs"), main = $("#main");
-const VIEWS = [{key:"vision", k:"VISIÓN", n:"Las cuatro misiones", color:"var(--navy)"}, ...M.map(m=>({key:m.key, k:`MISIÓN ${m.id}`, n:m.short, color:m.color}))];
-VIEWS.forEach(v => {
-  const b = el("button",{role:"tab",class:"tab","aria-selected":"false",id:"tab-"+v.key,style:`--tc:${v.color}`},`<span class="k">${v.k}</span><span class="n">${v.n}</span>`);
-  b.addEventListener("click", () => show(v.key, true));
-  tabs.append(b);
-});
+let VIEWS = [], pendingSelect = null;
+function buildTabs(){
+  VIEWS = [{key:"vision", k:"VISIÓN", n:"Las cuatro misiones", color:"var(--navy)"}, ...M.map(m=>({key:m.key, k:`MISIÓN ${m.id}`, n:m.short, color:m.color}))];
+  tabs.innerHTML="";
+  VIEWS.forEach(v => {
+    const b = el("button",{role:"tab",class:"tab","aria-selected":"false",id:"tab-"+v.key,style:`--tc:${v.color}`},`<span class="k">${esc(v.k)}</span><span class="n">${esc(v.n)}</span>`);
+    b.addEventListener("click", () => show(v.key, true));
+    tabs.append(b);
+  });
+}
+let currentMap = null;
 function show(key, push){
   if (!VIEWS.some(v=>v.key===key)) key="vision";
   tabs.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected", String(t.id==="tab-"+key)));
+  if (currentMap){ currentMap.remove(); currentMap=null; }
   main.innerHTML="";
   if (key==="vision") renderVision(); else renderMission(M.find(m=>m.key===key));
   if (push) { try { history.replaceState(null,"","#"+key); } catch(e){} }
   try { localStorage.setItem("mdg-view", key); } catch(e){}
 }
 
-/* Medidor de meta: escala lineal 0..max, punto actual, marca meta y flecha de sentido */
+/* ---------- Medidor de meta ---------- */
 function gauge(m, hex){
-  const W=200,H=44,L=8,R=8, x=v=>L+(W-L-R)*v/m.max;
+  const W=200,H=44,L=8,R=8, x=v=>L+(W-L-R)*Math.min(Math.max(v,0),m.max)/m.max;
   const xa=x(m.a), xg=x(m.g), y=18;
   const lo=Math.min(xa,xg), hi=Math.max(xa,xg);
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${m.now}; ${m.goal}">
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(m.now)}; ${esc(m.goal)}">
     <rect x="${L}" y="${y-3}" width="${W-L-R}" height="6" fill="#E6E8EE"/>
     <rect x="${lo}" y="${y-3}" width="${Math.max(hi-lo,0)}" height="6" fill="${hex}" fill-opacity=".28"/>
     <rect x="${L}" y="${y-3}" width="${Math.max(xa-L,0)}" height="6" fill="${hex}"/>
@@ -311,42 +327,86 @@ function gauge(m, hex){
   </svg>`;
 }
 function brecha(m){
-  const d = Math.abs(m.g-m.a); const v = Number.isInteger(d)?d:d.toFixed(2).replace(/0+$/,"").replace(/\.$/,"");
+  const d = m.dir==="up" ? m.g-m.a : m.a-m.g;
   const unit = m.u==="%" ? " pp" : "";
-  return m.dir==="up" ? `<span class="chip up">▲ faltan ${fmt(v)}${unit}</span>` : `<span class="chip down">▼ reducir ${fmt(v)}${unit}</span>`;
+  if (d<=0) return `<span class="chip up">✓ meta alcanzada</span>`;
+  return m.dir==="up" ? `<span class="chip up">▲ faltan ${fmt(d)}${unit}</span>` : `<span class="chip down">▼ reducir ${fmt(d)}${unit}</span>`;
+}
+function metaCard(t, m, extra){
+  const src = (t.fecha||t.fuente) ? `<div class="src">Dato ${esc([t.fecha,t.fuente].filter(Boolean).join(" · "))}</div>` : "";
+  const body = t.q ? `<span class="chip q">Meta de gestión</span>` :
+    (t.bad ? `<span class="chip err">Revisar valores en la tabla de metas</span>` : `<div class="gauge">${gauge(t,m.hex)}</div>${brecha(t)}`);
+  return `${extra||""}<div class="num">${t.e}</div><h4>${esc(t.t)}</h4>
+      <div class="goal">${esc(t.goal)}</div><div class="now">${esc(t.now)}</div>
+      ${t.ind?`<div class="ind">${esc(t.ind)}</div>`:""}${src}${body}`;
+}
+
+/* ---------- Mapa interactivo (Leaflet) ---------- */
+const nId = v => { const n = parseInt(String(v??"").trim(),10); return isFinite(n) ? n : null; };
+function styleFor(capa, hex){
+  const s = STY[capa] || {tipo:"lin", color:hex, tam:2, transp:0};
+  const op = 1 - (s.transp||0)/100;
+  if (s.tipo==="pol") return {kind:"pol", base:{color:s.color, weight:1, opacity:Math.min(1,op+.2), fillColor:s.color, fillOpacity:op*.75}};
+  if (s.tipo==="pt")  return {kind:"pt", base:{radius:Math.max(3,s.tam/2+1), color:"#fff", weight:1.2, fillColor:s.color, fillOpacity:1, opacity:1}};
+  return {kind:"lin", base:{color:s.color, weight:Math.min(7,Math.max(1.5,s.tam*.9)), opacity:op, lineCap:"round", dashArray: capa==="M4_conexion_01_02" ? "4 5" : null}};
+}
+const ORDER = {pol:0, lin:1, pt:2};
+function baseMap(div, key){
+  const map = L.map(div, {scrollWheelZoom:false, zoomSnap:.25, attributionControl:true});
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {subdomains:"abcd", maxZoom:19,
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'}).addTo(map);
+  map.on("click focus", ()=>map.scrollWheelZoom.enable());
+  map.on("mouseout", ()=>map.scrollWheelZoom.disable());
+  map.createPane("doc"); map.getPane("doc").style.zIndex = 350;
+  let doc = null;
+  if (BOUNDS[key]) doc = L.imageOverlay(`assets/doc_${key}.webp`, BOUNDS[key], {opacity:0, pane:"doc", interactive:false}).addTo(map);
+  return {map, doc};
+}
+function resetControl(map, fn){
+  const C = L.Control.extend({options:{position:"topleft"}, onAdd(){ const d=L.DomUtil.create("div","leaflet-bar"); const b=L.DomUtil.create("button","lbtn",d); b.type="button"; b.title="Ver todo"; b.setAttribute("aria-label","Ver todo"); b.textContent="⤢"; L.DomEvent.on(b,"click",e=>{L.DomEvent.stop(e); fn();}); return d; }});
+  map.addControl(new C());
+}
+function docTools(wrap, doc){
+  if (!doc) return;
+  const t = el("div",{class:"maptools"},`<label><input type="checkbox" class="dk"> Mostrar mapa original del documento</label><label class="dop" hidden>Transparencia <input type="range" min="10" max="100" value="70" class="dr" aria-label="Opacidad del mapa del documento"></label>`);
+  const ck=$(".dk",t), rg=$(".dr",t), lab=$(".dop",t);
+  const upd=()=>{ doc.setOpacity(ck.checked ? rg.value/100 : 0); lab.hidden=!ck.checked; };
+  ck.onchange=upd; rg.oninput=upd; wrap.append(t);
+}
+function legendHTML(capas){
+  return capas.map(c=>{ const s=STY[c]; if(!s) return ""; const cls = s.tipo==="pt"?"pt":(s.tipo==="lin"?"lin":"");
+    const st = s.tipo==="pol" ? `background:${s.color};opacity:${(1-(s.transp||0)/100)*.75+.2}` : `background:${s.color}`;
+    return `<span><i class="${cls}" style="${st}"></i>${esc(s.etiqueta||c)}</span>`; }).join("");
 }
 
 function renderMission(m){
   document.documentElement.style.setProperty("--c", m.color);
   const v = el("section",{class:"view",style:`--c:${m.color}`});
-  /* Ficha */
-  const pc = Math.round(m.cartera/m.total*100);
+  const pc = m.total ? Math.round(m.cartera/m.total*100) : 0;
   v.innerHTML = `
   <div class="ficha">
     <aside class="side">
       <span class="tag">Misión ${m.id}:</span>
-      <h3>${m.name}</h3>
-      <div class="obj">${m.obj}</div>
+      <h3>${esc(m.name)}</h3>
+      <div class="obj">${esc(m.obj)}</div>
       <div class="rule"></div>
       <div><div class="big">${m.total}</div><span>iniciativas</span></div>
       <div class="rule"></div>
       <div class="split"><span>${m.cartera} en cartera</span><div class="splitbar" aria-hidden="true"><i style="width:${pc}%"></i></div><span>${m.nuevas} nuevas</span></div>
     </aside>
     <div>
-      <div class="compromiso"><h2 class="sec">Compromiso al 2041</h2><p>${m.comp}</p></div>
-      <h2 class="sec" style="margin-top:22px">Metas por eje de acción al 2041</h2>
+      <div class="compromiso"><h2 class="sec">Compromiso al ${ANIO}</h2><p>${esc(m.comp)}</p></div>
+      <h2 class="sec" style="margin-top:22px">Metas por eje de acción al ${ANIO}</h2>
       <div class="metas" id="metas"></div>
     </div>
   </div>
   <div class="block">
-    <div class="maphead"><h2 class="sec" style="margin:0">Propuesta de iniciativas con georreferenciación</h2><span class="note">Arrastra para mover · Ctrl + rueda o botones para acercar. * Solo se muestran aquellas iniciativas que tienen disponible su georreferenciación</span></div>
+    <div class="maphead"><h2 class="sec" style="margin:0">Propuesta de iniciativas con georreferenciación</h2><span class="note">Haz clic en una iniciativa (en el mapa o en la lista) para acercarte. Clic en el mapa activa el zoom con la rueda.</span></div>
     <div class="mapgrid">
-      <div>
-        <div class="mapbox" id="mapbox">
-          <div class="zoom"><button id="zin" aria-label="Acercar">+</button><button id="zout" aria-label="Alejar">−</button><button id="zreset" aria-label="Ver mapa completo" style="font-size:13px">⤢</button></div>
-          <div class="stage" id="stage"><img src="assets/mapa-m${m.id}.jpg" alt="Mapa de la Misión ${m.id}: ${m.name}" width="${MAPDIM["m"+m.id][0]}" height="${MAPDIM["m"+m.id][1]}"></div>
-        </div>
-        <div class="leyenda"><span class="lt">LEYENDA:</span><img src="assets/leyenda-m${m.id}.jpg" alt="Leyenda del mapa de la Misión ${m.id}"></div>
+      <div id="mapwrap">
+        <div class="lmap" id="lmap" role="region" aria-label="Mapa interactivo de la Misión ${m.id}"></div>
+        <div class="leg" id="leg"></div>
+        <details class="legdoc"><summary>Leyenda del documento original</summary><img src="assets/leyenda-m${m.id}.jpg" alt="Leyenda del mapa de la Misión ${m.id}"></details>
       </div>
       <div>
         <div class="filters" id="filters"></div>
@@ -361,113 +421,144 @@ function renderMission(m){
   </div>`;
   main.append(v);
 
+  /* Capas del mapa */
+  const fc = GEO["m"+m.id] || {features:[]};
+  const nameOf = Object.fromEntries(m.ini.map(i=>[i[1], i[2]]));
+  const ejeOf = Object.fromEntries(m.ini.map(i=>[i[1], i[0]]));
+  const {map, doc} = baseMap($("#lmap",v), "m"+m.id); currentMap = map;
+  const byNum = {}, ctx = [], groupAll = L.featureGroup().addTo(map);
+  const feats = fc.features.slice().sort((a,b)=>ORDER[styleFor(a.properties.capa).kind]-ORDER[styleFor(b.properties.capa).kind]);
+  feats.forEach(f=>{
+    const p=f.properties, sty=styleFor(p.capa, m.hex), n=nId(p.id);
+    const lyr = L.geoJSON(f, {
+      style: () => sty.base,
+      pointToLayer: (_f, ll) => L.circleMarker(ll, sty.base)
+    });
+    lyr.eachLayer(l=>{ l._base=sty.base; l._kind=sty.kind; l._num=n; l._capa=p.capa; l._f=f; });
+    if (n!==null){
+      (byNum[n] ||= []).push(lyr);
+      const nm = nameOf[n] || p.nombre || `Iniciativa ${n}`;
+      lyr.bindTooltip(`<b>${n}.</b> ${esc(nm)}`, {sticky:true, direction:"top", opacity:.95});
+      lyr.on("click", e=>{ L.DomEvent.stop(e); select(n, false, e.latlng); });
+    } else {
+      lyr.bindTooltip(esc(STY[p.capa]?.etiqueta || p.categoria || ""), {sticky:true, opacity:.9});
+      ctx.push(lyr);
+    }
+    groupAll.addLayer(lyr);
+  });
+  /* Marcadores con número (un punto representativo por iniciativa) */
+  const labels = {};
+  const prio = {pt:0, lin:1, pol:2};
+  Object.entries(byNum).forEach(([n, lyrs])=>{
+    n=+n;
+    const ls=[]; lyrs.forEach(g=>g.eachLayer(l=>ls.push(l)));
+    ls.sort((a,b)=>prio[a._kind]-prio[b._kind]);
+    const l=ls[0]; let ll;
+    if (l._kind==="pt") ll=l.getLatLng();
+    else if (l._kind==="lin"){ const pts=l.getLatLngs().flat(3); ll=pts[Math.floor(pts.length/2)]; }
+    else ll=l.getBounds().getCenter();
+    const mk=L.marker(ll,{icon:L.divIcon({className:"", html:`<span class="nlab" style="--c:${m.hex}">${n}</span>`, iconSize:[24,24], iconAnchor:[12,12]}), keyboard:true, title:`Iniciativa ${n}`, zIndexOffset:500});
+    mk.on("click", e=>{ L.DomEvent.stop(e); select(n, true); });
+    mk.addTo(map); labels[n]=mk;
+  });
+  const allBounds = () => { const b=L.latLngBounds([]); Object.values(byNum).forEach(a=>a.forEach(g=>b.extend(g.getBounds()))); return b.isValid()?b:groupAll.getBounds(); };
+  const fitAll = () => { const b=allBounds(); if (b.isValid()) map.fitBounds(b,{padding:[20,20]}); else map.setView([-33.45,-70.65],10); };
+  fitAll(); resetControl(map, ()=>{ select(null); fitAll(); });
+  docTools($("#mapwrap",v), doc);
+  $("#mapwrap",v).insertBefore($(".maptools",v)||document.createTextNode(""), $("#leg",v));
+  const capasPresent = [...new Set(fc.features.map(f=>f.properties.capa))];
+  $("#leg",v).innerHTML = legendHTML(capasPresent);
+  setTimeout(()=>map.invalidateSize(), 50);
+
   /* Metas */
   const metas = $("#metas", v);
+  let filter=0, active=null;
   m.metas.forEach(t => {
-    const hasIni = m.ini.some(i=>i[0]===t.e);
+    const nIni = m.ini.filter(i=>i[0]===t.e && byNum[i[1]]).length;
+    const hasIni = nIni>0;
     const c = el("div",{class:"meta"+(hasIni?" clickable":""),"data-e":t.e});
     if (hasIni){ c.setAttribute("role","button"); c.setAttribute("tabindex","0"); c.setAttribute("aria-pressed","false"); c.title="Filtrar iniciativas de este eje en el mapa"; }
-    c.innerHTML = `${hasIni?`<span class="filt">${m.ini.filter(i=>i[0]===t.e).length} en mapa</span>`:""}
-      <div class="num">${t.e}</div><h4>${t.t}</h4>
-      <div class="goal">${t.goal}</div><div class="now">${t.now}</div>
-      ${t.ind?`<div class="ind">${t.ind}</div>`:""}
-      ${t.q?`<span class="chip q">Meta de gestión</span>`:`<div class="gauge">${gauge(t,m.hex)}</div>${brecha(t)}`}`;
+    c.innerHTML = metaCard(t, m, hasIni?`<span class="filt">${nIni} en mapa</span>`:"");
     if (hasIni){
-      const act = () => setFilter(filter===t.e?0:t.e);
+      const act = () => setFilter(filter===t.e?0:t.e, true);
       c.addEventListener("click", act);
       c.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); act(); } });
     }
     metas.append(c);
   });
 
-  /* Mapa con zoom/arrastre */
-  const box=$("#mapbox",v), stage=$("#stage",v), [IW,IH]=MAPDIM["m"+m.id];
-  let k=1, tx=0, ty=0, active=null, filter=0;
-  const apply=()=>{ const w=box.clientWidth, h=box.clientHeight; tx=Math.min(0,Math.max(w-w*k,tx)); ty=Math.min(0,Math.max(h-h*k,ty)); stage.style.transform=`translate(${tx}px,${ty}px) scale(${k})`; stage.style.setProperty("--k",k); };
-  const zoomAt=(nk,cx,cy)=>{ nk=Math.min(6,Math.max(1,nk)); tx=cx-(cx-tx)*nk/k; ty=cy-(cy-ty)*nk/k; k=nk; apply(); };
-  $("#zin",v).onclick=()=>zoomAt(k*1.5,box.clientWidth/2,box.clientHeight/2);
-  $("#zout",v).onclick=()=>zoomAt(k/1.5,box.clientWidth/2,box.clientHeight/2);
-  $("#zreset",v).onclick=()=>{k=1;tx=0;ty=0;apply();};
-  box.addEventListener("wheel",e=>{ if(!e.ctrlKey && !e.metaKey) return; e.preventDefault(); const r=box.getBoundingClientRect(); zoomAt(k*(e.deltaY<0?1.25:0.8),e.clientX-r.left,e.clientY-r.top); },{passive:false});
-  let drag=null;
-  box.addEventListener("pointerdown",e=>{ if(e.target.closest("button")) return; drag={x:e.clientX,y:e.clientY,tx,ty,moved:false}; box.setPointerCapture(e.pointerId); box.classList.add("drag"); });
-  box.addEventListener("pointermove",e=>{ if(!drag) return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; if(Math.abs(dx)+Math.abs(dy)>3) drag.moved=true; tx=drag.tx+dx; ty=drag.ty+dy; apply(); });
-  const end=()=>{ drag=null; box.classList.remove("drag"); };
-  box.addEventListener("pointerup",end); box.addEventListener("pointercancel",end);
-  new ResizeObserver(apply).observe(box);
-
-  const tip = el("div",{class:"tip",hidden:""}); box.append(tip);
-  const hots=[];
-  m.ini.forEach((it,idx)=>{
-    it[3].forEach(([px,py])=>{
-      const h=el("button",{class:"hot","aria-label":`Iniciativa ${it[1]}: ${it[2]}`,"data-i":idx,style:`left:${px/IW*100}%;top:${py/IH*100}%`});
-      h.addEventListener("click",e=>{ e.stopPropagation(); select(idx,false); });
-      h.addEventListener("mouseenter",()=>showTip(idx,h));
-      h.addEventListener("mouseleave",()=>{ if(active!==idx) tip.hidden=true; else showTip(idx, hots.find(x=>x.dataset.i==idx)); });
-      stage.append(h); hots.push(h);
-    });
-  });
-  function showTip(idx,h){
-    const it=m.ini[idx]; tip.innerHTML=`<b>${it[1]}.</b> ${it[2]}<br><span style="color:var(--ink-2)">E${it[0]}. ${m.ejes[it[0]]}</span>`;
-    tip.hidden=false;
-    const br=box.getBoundingClientRect(), hr=h.getBoundingClientRect();
-    let x=hr.left-br.left+hr.width/2+12, y=hr.top-br.top+hr.height/2+12;
-    if (x+tip.offsetWidth>br.width-6) x=hr.left-br.left-tip.offsetWidth-6;
-    if (y+tip.offsetHeight>br.height-6) y=hr.top-br.top-tip.offsetHeight-6;
-    tip.style.left=Math.max(6,x)+"px"; tip.style.top=Math.max(6,y)+"px";
-  }
-
   /* Lista y filtros */
   const list=$("#list",v), filters=$("#filters",v);
-  const ejesIni=[...new Set(m.ini.map(i=>i[0]))];
-  [0,...ejesIni].forEach(e=>{
+  const ejesIni=[...new Set(m.ini.map(i=>i[0]))].sort((a,b)=>(a||99)-(b||99));
+  [0,...ejesIni.filter(e=>e!==0)].forEach(e=>{
     const b=el("button",{class:"fbtn","aria-pressed":String(e===0),"data-e":e}, e===0?`Todas (${m.ini.length})`:`E${e}`);
-    b.title = e===0 ? "Mostrar todas" : m.ejes[e];
-    b.onclick=()=>setFilter(e); filters.append(b);
+    b.title = e===0 ? "Mostrar todas" : (m.ejes[e]||"");
+    b.onclick=()=>setFilter(e, false); filters.append(b);
   });
   ejesIni.forEach(e=>{
-    const g=el("div",{class:"grp","data-e":e}); g.append(el("h5",{},`E${e}. ${m.ejes[e]}`));
+    const g=el("div",{class:"grp","data-e":e}); g.append(el("h5",{},esc(e?`E${e}. ${m.ejes[e]||""}`:m.ejes[0])));
     const ul=el("ul");
-    m.ini.forEach((it,idx)=>{ if(it[0]!==e) return;
-      const li=el("li"); const b=el("button",{class:"ini","data-i":idx},`<b>${it[1]}.</b><span>${it[2]}</span>`);
-      b.onclick=()=>select(idx,true); b.onmouseenter=()=>hots.filter(h=>h.dataset.i==idx).forEach(h=>h.classList.add("on"));
-      b.onmouseleave=()=>hots.filter(h=>h.dataset.i==idx&&active!==idx).forEach(h=>h.classList.remove("on"));
+    m.ini.forEach(it=>{ if(it[0]!==e) return;
+      const geo = !!byNum[it[1]];
+      const li=el("li"); const b=el("button",{class:"ini","data-n":it[1]},`<b>${it[1]}.</b><span>${esc(it[2])}${geo?"":' <em style="color:var(--ink-2)">(sin geometría)</em>'}</span>`);
+      b.onclick=()=>select(it[1],true);
+      b.onmouseenter=()=>hover(it[1],true); b.onmouseleave=()=>hover(it[1],false);
       li.append(b); ul.append(li); });
     g.append(ul); list.append(g);
   });
-  function setFilter(e){
+
+  function paint(){
+    Object.entries(byNum).forEach(([n,lyrs])=>{
+      n=+n; const vis = filter===0 || ejeOf[n]===filter;
+      const on = active===n, dim = active!==null && !on;
+      lyrs.forEach(g=>{
+        if (vis && !map.hasLayer(g)) g.addTo(map); if (!vis && map.hasLayer(g)) map.removeLayer(g);
+        g.eachLayer(l=>{ const b=l._base, s={...b};
+          if (on){ if (l._kind==="pt"){ s.radius=b.radius+3; s.color="#1D1F26"; s.weight=2; } else { s.weight=(b.weight||1)+3; s.opacity=1; if(l._kind==="pol"){ s.color="#1D1F26"; s.fillOpacity=Math.min(1,(b.fillOpacity||.5)+.25);} } }
+          if (dim){ s.opacity=(b.opacity??1)*.3; s.fillOpacity=(b.fillOpacity??1)*.3; }
+          l.setStyle(s); if (on) l.bringToFront(); });
+      });
+      const lab=labels[n]; if (lab){ if (vis && !map.hasLayer(lab)) lab.addTo(map); if (!vis && map.hasLayer(lab)) map.removeLayer(lab);
+        const s=lab.getElement()?.querySelector(".nlab"); if (s){ s.classList.toggle("on",on); s.classList.toggle("dim",dim); } }
+    });
+    ctx.forEach(g=>g.eachLayer(l=>{ const b=l._base; l.setStyle(active!==null||filter!==0 ? {opacity:(b.opacity??1)*.35, fillOpacity:(b.fillOpacity??1)*.35} : b); }));
+  }
+  function hover(n, on){ const s=labels[n]?.getElement()?.querySelector(".nlab"); if (s && active!==n) s.classList.toggle("on", on); }
+  function setFilter(e, fromCard){
     filter=e;
     filters.querySelectorAll(".fbtn").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.e===e)));
     metas.querySelectorAll(".meta.clickable").forEach(c=>c.setAttribute("aria-pressed",String(+c.dataset.e===e)));
     list.querySelectorAll(".grp").forEach(g=>g.hidden = e!==0 && +g.dataset.e!==e);
-    hots.forEach(h=>h.classList.toggle("dim", e!==0 && m.ini[h.dataset.i][0]!==e));
-    if (active!==null && e!==0 && m.ini[active][0]!==e) select(null);
-    if (e!==0 && box.getBoundingClientRect().top>window.innerHeight) box.scrollIntoView({behavior:"smooth",block:"center"});
+    if (active!==null && e!==0 && ejeOf[active]!==e) { active=null; map.closePopup(); list.querySelectorAll(".ini.on").forEach(b=>b.classList.remove("on")); }
+    paint();
+    const b=L.latLngBounds([]); Object.entries(byNum).forEach(([n,a])=>{ if (e===0||ejeOf[+n]===e) a.forEach(g=>b.extend(g.getBounds())); });
+    if (b.isValid()) map.flyToBounds(b,{padding:[30,30], duration:.6, maxZoom:13});
+    if (fromCard) $("#lmap",v).scrollIntoView({behavior:"smooth",block:"center"});
   }
-  function select(idx,fly){
-    active=idx;
-    hots.forEach(h=>h.classList.toggle("on", idx!==null && +h.dataset.i===idx));
-    list.querySelectorAll(".ini").forEach(b=>b.classList.toggle("on", idx!==null && +b.dataset.i===idx));
-    if (idx===null){ tip.hidden=true; return; }
-    const pts=m.ini[idx][3];
-    if (fly){
-      const w=box.clientWidth,h=box.clientHeight;
-      const xs=pts.map(p=>p[0]/IW*w), ys=pts.map(p=>p[1]/IH*h);
-      const spanX=Math.max(...xs)-Math.min(...xs), spanY=Math.max(...ys)-Math.min(...ys);
-      const nk=Math.max(1,Math.min(3, 0.7*w/Math.max(spanX,1), 0.7*h/Math.max(spanY,1)));
-      const cx=(Math.max(...xs)+Math.min(...xs))/2, cy=(Math.max(...ys)+Math.min(...ys))/2;
-      k=nk; tx=w/2-cx*k; ty=h/2-cy*k; apply();
-      if (box.getBoundingClientRect().bottom<0 || box.getBoundingClientRect().top>window.innerHeight) box.scrollIntoView({behavior:"smooth",block:"center"});
-    } else {
-      const b=list.querySelector(`.ini[data-i="${idx}"]`); if(b) b.scrollIntoView({block:"nearest",behavior:"smooth"});
-    }
-    requestAnimationFrame(()=>showTip(idx, hots.find(h=>+h.dataset.i===idx)));
+  function select(n, fly, at){
+    active=n;
+    list.querySelectorAll(".ini").forEach(b=>b.classList.toggle("on", n!==null && +b.dataset.n===n));
+    paint();
+    if (n===null){ map.closePopup(); return; }
+    const lyrs=byNum[n];
+    const btn=list.querySelector(`.ini[data-n="${n}"]`); if (btn) btn.scrollIntoView({block:"nearest",behavior:"smooth"});
+    if (!lyrs) return;
+    const b=L.latLngBounds([]); lyrs.forEach(g=>b.extend(g.getBounds()));
+    if (fly){ map.flyToBounds(b,{padding:[50,50], maxZoom:14, duration:.7});
+      const r=$("#lmap",v).getBoundingClientRect(); if (r.bottom<0 || r.top>window.innerHeight) $("#lmap",v).scrollIntoView({behavior:"smooth",block:"center"}); }
+    const cats=[...new Set(lyrs.map(g=>STY[g.getLayers()[0]._capa]?.etiqueta).filter(Boolean))];
+    const notas=[...new Set(lyrs.map(g=>g.getLayers()[0]._f.properties.nota).filter(Boolean))];
+    const e=ejeOf[n];
+    const html=`<div class="pop"><b>${n}.</b> ${esc(nameOf[n]||"")}<br><span class="k">${e?`E${e}. ${esc(m.ejes[e]||"")}`:"Sin descripción en el listado"}</span>${cats.length?`<br><span class="k">${esc(cats.join(" · "))}</span>`:""}${notas.length?`<br><span class="k"><i>${esc(notas.join(" · "))}</i></span>`:""}</div>`;
+    L.popup({autoPan:true, maxWidth:280, offset:[0,-6]}).setLatLng(at || labels[n]?.getLatLng() || b.getCenter()).setContent(html).openOn(map);
   }
-  box.addEventListener("click",e=>{ if(!e.target.closest(".hot") && !e.target.closest(".zoom") && !(drag&&drag.moved)) select(null); });
+  map.on("click", ()=>select(null));
+  map.on("popupclose", ()=>{ if (active!==null){ active=null; list.querySelectorAll(".ini.on").forEach(b=>b.classList.remove("on")); paint(); } });
+  if (pendingSelect && pendingSelect.m===m.id){ const n=pendingSelect.n; pendingSelect=null; setTimeout(()=>select(n,true),300); }
 
   /* Gobernanza */
   const gob=$("#gob",v), info=$("#actorinfo",v);
-  const actor=(name,icon,esp)=>{ const b=el("button",{class:"actor"+(esp?" esp":"")},(icon?ICONS[icon]:"")+`<span>${name}</span>`); b.onclick=()=>pick(b,name,esp); return b; };
+  const actor=(name,icon,esp)=>{ const b=el("button",{class:"actor"+(esp?" esp":"")},(icon?ICONS[icon]:"")+`<span>${esc(name)}</span>`); b.onclick=()=>pick(b,name,esp); return b; };
   const col=(items)=>{ const c=el("div",{class:"col"}); items.forEach(x=>c.append(x)); return c; };
   const lvl=(t,desc)=>{ const b=el("button",{class:"lvl"},t); b.onclick=()=>{ clear(); b.classList.add("on"); info.innerHTML=`<b>${t}.</b> ${desc}`; }; return b; };
   const ope=[...COMMON.ope.map(([n,i])=>actor(n,i))];
@@ -483,14 +574,16 @@ function renderMission(m){
   function pick(b,name,esp){
     clear(); b.classList.add("sel");
     const en = esp ? M.filter(x=>x.esp.includes(name)) : (name.startsWith("COSOC") ? M.filter(x=>x.cosoc) : M);
-    info.innerHTML=`<b>${name}</b> ${esp?"es una instancia específica":"es un actor común"} del modelo. Participa en:<span class="dots">${en.map(x=>`<i style="background:${x.color}" title="${x.name}">M${x.id}</i>`).join("")}</span>`;
+    info.innerHTML=`<b>${esc(name)}</b> ${esp?"es una instancia específica":"es un actor común"} del modelo. Participa en:<span class="dots">${en.map(x=>`<i style="background:${x.color}" title="${esc(x.name)}">M${x.id}</i>`).join("")}</span>`;
   }
 }
 
+/* ---------- Visión ---------- */
+const VISION_CAPAS = {0:["V_areas_agricolas_prioritarias","V_corredores_ecologicos"], 1:["M1_corredores_intervencion","M1_puntos_conexion_TP_rural"], 2:["M2_bordes_autopistas_ferroviarios"], 3:["M3_parques_areas_verdes"], 4:["M4_territorios_desarrollo_areas","M4_subcentros_distritos"]};
 function renderVision(){
   document.documentElement.style.setProperty("--c","var(--navy)");
   const v=el("section",{class:"view",style:"--c:var(--navy)"});
-  const tot=M.reduce((s,m)=>s+m.total,0), geo=M.reduce((s,m)=>s+m.ini.length,0);
+  const tot=M.reduce((s,m)=>s+m.total,0), geo=M.reduce((s,m)=>s+new Set((GEO["m"+m.id]?.features||[]).map(f=>nId(f.properties.id)).filter(n=>n!==null && m.ini.some(i=>i[1]===n))).size,0);
   v.innerHTML=`
   <div class="kpis" id="kpis"></div>
   <div class="block vgrid">
@@ -499,27 +592,28 @@ function renderVision(){
       <div id="bars"></div>
       <div class="note" style="font-style:normal;margin-top:6px">Barra sólida: en cartera · barra clara: nuevas. ${geo} iniciativas cuentan con georreferenciación y aparecen en los mapas de cada misión.</div>
     </div>
-    <div>
+    <div id="vwrap">
       <div class="maphead"><h2 class="sec" style="margin:0;color:var(--navy)"><span class="tag" style="--c:var(--navy);font-size:14px">Visión:</span> Articulación territorial de las cuatro misiones</h2></div>
-      <div class="mapbox" id="vbox" style="cursor:zoom-in"><div class="stage" id="vstage"><img src="assets/mapa-vision.jpg" alt="Mapa de articulación territorial de las cuatro misiones" width="1970" height="1414"></div></div>
-      <div class="vleg block" style="margin-top:14px">${M.map(m=>`<div><h4 style="color:${m.color}">${m.name.replace("Santiago ","Santiago ")}</h4><img src="assets/ley-v${m.id}.jpg" alt="Leyenda ${m.name}"></div>`).join("")}</div>
-      <p class="note" style="text-align:right">Fuente: Elaboración propia</p>
+      <div class="toggles" id="vtog"></div>
+      <div class="lmap" id="vmap" role="region" aria-label="Mapa interactivo de articulación de las cuatro misiones"></div>
+      <div class="leg" id="vleg"></div>
+      <details class="legdoc"><summary>Leyendas del documento original</summary><div class="vleg" style="margin-top:8px">${M.map(m=>`<div><h4 style="color:${m.color}">${esc(m.name)}</h4><img src="assets/ley-v${m.id}.jpg" alt="Leyenda ${esc(m.name)}"></div>`).join("")}</div></details>
     </div>
     <div class="chart">
-      <h2 class="sec" style="color:var(--navy)">Estado de las metas al 2041</h2>
+      <h2 class="sec" style="color:var(--navy)">Estado de las metas al ${ANIO}</h2>
       <div id="mt"></div>
     </div>
   </div>`;
   main.append(v);
   const kp=$("#kpis",v);
-  M.forEach(m=>{ const b=el("button",{class:"kcard",style:`--kc:${m.color}`},`<span class="t">Misión ${m.id}: ${m.name}</span><span class="v">${m.total}</span><span class="s">iniciativas · ${m.cartera} en cartera, ${m.nuevas} nuevas · ${m.metas.length} metas</span>`); b.onclick=()=>show(m.key,true); kp.append(b); });
+  M.forEach(m=>{ const b=el("button",{class:"kcard",style:`--kc:${m.color}`},`<span class="t">Misión ${m.id}: ${esc(m.name)}</span><span class="v">${m.total}</span><span class="s">iniciativas · ${m.cartera} en cartera, ${m.nuevas} nuevas · ${m.metas.length} metas</span>`); b.onclick=()=>show(m.key,true); kp.append(b); });
 
   /* Barras apiladas a escala */
-  const W=760, row=40, L=210, R=40, H=M.length*row+26, max=50, x=v=>L+(W-L-R)*v/max;
+  const W=760, row=40, L0=210, R=40, H=M.length*row+26, max=Math.max(10, Math.ceil(Math.max(...M.map(m=>m.total))/10)*10), x=v=>L0+(W-L0-R)*v/max;
   let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Iniciativas por misión, en cartera y nuevas">`;
   for (let t=0;t<=max;t+=10) s+=`<line x1="${x(t)}" x2="${x(t)}" y1="0" y2="${H-20}" stroke="#E6E8EE"/><text x="${x(t)}" y="${H-6}" font-size="11" text-anchor="middle" fill="#4A4E5A" font-family="Nunito Sans, sans-serif">${t}</text>`;
   M.forEach((m,i)=>{ const y=i*row+6;
-    s+=`<g class="barrow" data-k="${m.key}" style="cursor:pointer"><text x="${L-10}" y="${y+18}" font-size="13" text-anchor="end" fill="#1D1F26" font-family="Nunito Sans, sans-serif" font-weight="700">M${m.id}. ${m.short}</text>
+    s+=`<g class="barrow" data-k="${m.key}" style="cursor:pointer"><text x="${L0-10}" y="${y+18}" font-size="13" text-anchor="end" fill="#1D1F26" font-family="Nunito Sans, sans-serif" font-weight="700">M${m.id}. ${esc(m.short)}</text>
       <rect x="${x(0)}" y="${y+4}" width="${x(m.cartera)-x(0)}" height="22" fill="${m.hex}"/>
       <rect x="${x(m.cartera)}" y="${y+4}" width="${x(m.total)-x(m.cartera)}" height="22" fill="${m.hex}" fill-opacity=".38"/>
       <text x="${x(m.cartera)-6}" y="${y+19}" font-size="11.5" text-anchor="end" fill="#fff" font-weight="700" font-family="Nunito Sans, sans-serif">${m.cartera}</text>
@@ -536,21 +630,74 @@ function renderVision(){
     d.innerHTML=`<div style="font-weight:700;color:${m.color};margin-bottom:6px">Misión ${m.id}</div>`+
       m.metas.map(t=>`<div style="display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px;align-items:start;font-size:13px;line-height:1.3;margin-bottom:6px">
         <span class="num" style="width:20px;height:20px;font-size:12px;background:${m.color}">${t.e}</span>
-        <span><b>${t.t}</b><br><span style="color:var(--ink-2)">${t.now.replace("Actual: ","")} → ${t.goal.replace("Al 2041: ","")}</span></span></div>`).join("");
+        <span><b>${esc(t.t)}</b><br><span style="color:var(--ink-2)">${esc(t.now.replace(/^Actual:\s*/,""))} → ${esc(t.goal.replace(/^Al \d+:\s*/,""))}</span></span></div>`).join("");
     tbl.append(d);
   });
   mt.append(tbl);
 
-  /* Zoom simple del mapa de visión */
-  const vb=$("#vbox",v), vs=$("#vstage",v); let z=false;
-  vb.addEventListener("click",e=>{ const r=vb.getBoundingClientRect(); if(!z){ const ox=(e.clientX-r.left), oy=(e.clientY-r.top); vs.style.transformOrigin=`${ox}px ${oy}px`; vs.style.transform="scale(2.2)"; vb.style.cursor="zoom-out"; } else { vs.style.transform=""; vb.style.cursor="zoom-in"; } z=!z; });
-  vs.style.transition="transform .3s ease";
+  /* Mapa de visión: capas principales de cada misión + capas de la pág. 82 */
+  const {map, doc} = baseMap($("#vmap",v), "vision"); currentMap = map;
+  const groups = {};
+  const addCapa = (mid, fc, capa, hex) => {
+    (fc?.features||[]).filter(f=>f.properties.capa===capa).forEach(f=>{
+      const sty=styleFor(capa, hex), p=f.properties, n=nId(p.id);
+      const lyr=L.geoJSON(f,{style:()=>sty.base, pointToLayer:(_f,ll)=>L.circleMarker(ll,sty.base)});
+      const m=M.find(x=>x.id===mid);
+      if (m && n!==null){
+        const nm=(m.ini.find(i=>i[1]===n)||[])[2]||p.nombre;
+        lyr.bindTooltip(`<b style="color:${m.hex}">M${m.id} · ${n}.</b> ${esc(nm)}`,{sticky:true,opacity:.95});
+        lyr.on("click",e=>{ L.DomEvent.stop(e);
+          const box=el("div",{class:"pop",style:`--c:${m.hex}`},`<b>Misión ${m.id} · ${n}.</b> ${esc(nm)}<br><span class="k">${esc(STY[capa]?.etiqueta||"")}</span><br>`);
+          const go=el("button",{class:"go",type:"button"},`Ver en la Misión ${m.id} →`); go.onclick=()=>{ pendingSelect={m:m.id,n}; show(m.key,true); window.scrollTo({top:0}); };
+          box.append(go); L.popup({maxWidth:280}).setLatLng(e.latlng).setContent(box).openOn(map); });
+      } else lyr.bindTooltip(esc(STY[capa]?.etiqueta||""),{sticky:true,opacity:.9});
+      (groups[mid] ||= L.featureGroup()).addLayer(lyr);
+    });
+  };
+  [0,3,2,4,1].forEach(mid=>VISION_CAPAS[mid].forEach(c=>addCapa(mid, mid===0?GEO.vision:GEO["m"+mid], c, mid?M.find(x=>x.id===mid)?.hex:"#6E8F4E")));
+  Object.values(groups).forEach(g=>g.addTo(map));
+  const all=L.latLngBounds([]); Object.values(groups).forEach(g=>all.extend(g.getBounds()));
+  const fit=()=>all.isValid()?map.fitBounds(all,{padding:[10,10]}):map.setView([-33.45,-70.65],9);
+  fit(); resetControl(map, fit);
+  const tog=$("#vtog",v);
+  [[0,"Áreas agrícolas y corredores ecológicos","#6E8F4E"],...M.map(m=>[m.id,`M${m.id}. ${m.short}`,m.hex])].forEach(([mid,txt,col])=>{
+    if (!groups[mid]) return;
+    const b=el("button",{class:"fbtn","aria-pressed":"true",style:`--c:${col}`},esc(txt));
+    b.onclick=()=>{ const on=b.getAttribute("aria-pressed")!=="true"; b.setAttribute("aria-pressed",String(on)); on?groups[mid].addTo(map):map.removeLayer(groups[mid]); };
+    tog.append(b);
+  });
+  docTools($("#vwrap",v), doc);
+  $("#vwrap",v).insertBefore($(".maptools",v), $("#vleg",v));
+  $("#vleg",v).innerHTML = legendHTML(Object.values(VISION_CAPAS).flat());
+  setTimeout(()=>map.invalidateSize(), 50);
 }
 
-let start="vision";
-const h=(location.hash||"").slice(1);
-if (VIEWS.some(v=>v.key===h)) start=h; else { try { const s=localStorage.getItem("mdg-view"); if (s && VIEWS.some(v=>v.key===s)) start=s; } catch(e){} }
-show(start,false);
+/* ---------- Inicio ---------- */
+(async function init(){
+  try {
+    if (!window.L) throw new Error("No se pudo cargar la librería del mapa (Leaflet).");
+    const names=["misiones","metas","ejes","iniciativas","actores"];
+    const tabsData = Object.fromEntries(await Promise.all(names.map(async n=>[n, await loadTable(n)])));
+    const [sty, lim, ...geos] = await Promise.all([
+      getText(CFG.fuentes.estilos).then(JSON.parse).catch(()=>({})),
+      getText(CFG.fuentes.limites_doc).then(JSON.parse).catch(()=>({})),
+      ...["m1","m2","m3","m4","vision"].map(k=>loadGeo(k==="vision"?"mapa_vision":"mapa_"+k).catch(err=>{ console.warn(err); return {type:"FeatureCollection",features:[]}; }))
+    ]);
+    STY=sty; BOUNDS=lim; ["m1","m2","m3","m4","vision"].forEach((k,i)=>GEO[k]=geos[i]);
+    build(tabsData);
+    buildTabs();
+    const tot=M.reduce((s,m)=>s+m.total,0);
+    $("#h1").textContent = `Misiones metropolitanas al ${ANIO}`;
+    $("#hero-p").textContent = `${M.length} misiones, ${tot} iniciativas y sus metas por eje de acción. Elige una misión para ver su compromiso, metas, iniciativas georreferenciadas y modelo de gobernanza.`;
+    let start="vision";
+    const h=(location.hash||"").slice(1);
+    if (VIEWS.some(v=>v.key===h)) start=h; else { try { const s=localStorage.getItem("mdg-view"); if (s && VIEWS.some(v=>v.key===s)) start=s; } catch(e){} }
+    show(start,false);
+  } catch(err){
+    console.error(err);
+    main.innerHTML = `<div class="banner"><b>No se pudieron cargar los datos del dashboard.</b><br>${esc(err.message)}<br><br>Revisa que las direcciones de <code>config.js</code> estén bien escritas y que los archivos existan. Si abriste <code>index.html</code> con doble clic desde tu computador, el navegador bloquea la lectura de archivos: usa la versión publicada (GitHub Pages) o un servidor local.</div>`;
+  }
+})();
 </script>
 
 </body>

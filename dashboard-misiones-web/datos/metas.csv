@@ -1,0 +1,19 @@
+﻿mision_id;eje;titulo;indicador;tipo;sentido;valor_actual;valor_meta;valor_maximo;unidad;meta_prefijo;meta_texto;actual_texto;fecha_dato;fuente_dato
+1;1;Integración urbano-rural;Itinerarios de TP rural operativos;cuantitativa;aumentar;75;100;100;%;;;;;
+1;2;Movilidad activa;Viajes realizados a pie + bicicleta;cuantitativa;aumentar;38,2;45;100;%;;;;;
+1;3;Ejes metropolitanos;Viajes por trabajo, estudio o servicios sobre 60 minutos;cuantitativa;reducir;23;15;100;%;;;;;
+1;4;Gobernanza de movilidad y transporte;;gestion;;;;;;;Mesa metropolitana en operación;Sin mecanismo;;
+2;1;Entornos de equipamientos metropolitanos;Entornos con altas concentraciones de homicidios;cuantitativa;reducir;8;4;12;de 12;máx.;;;;
+2;2;Límites intercomunales críticos;Límites con actividad delictual relevante y alta tasa de homicidios;cuantitativa;reducir;6;2;6;;máx.;;;;
+2;3;Inteligencia territorial;Comunas integradas al Dpto. de Seguridad;cuantitativa;aumentar;3;48;52;;;;;;
+2;4;Gobernanza metropolitana para la seguridad;;gestion;;;;;;;Mesa metropolitana en operación;Sin mecanismo;;
+3;1;Infraestructura verde y azul;Comunas del AMS integradas al Sistema metropolitano;cuantitativa;aumentar;86,5;100;100;%;;;;;
+3;2;Áreas verdes y espacios públicos metropolitanos;Comunas sobre el promedio de 3,6 m²/hab;cuantitativa;aumentar;41;52;52;;;;;;
+3;3;Drenaje sostenible y resiliencia hídrica;En riesgo de inundación por desborde de colectores;cuantitativa;reducir;10;0;10;;;;;;
+3;4;Protección de suelos agrícolas estratégicos;Superficie bajo presión por expansión urbana;gestion;;;;;;;Incorporar al AMS medidas de protección de suelos agrícolas estratégicos;+15mil ha;;
+3;5;Valorización de residuos;Valorización de residuos;cuantitativa;aumentar;1,55;30;100;%;;;;;
+3;6;Gobernanza metropolitana verde-azul;;gestion;;;;;;;Mesa Metropolitana en operación;Sin mecanismo;;
+4;1;Subcentralidades metropolitanas estratégicas;Subcentralidades sobre el umbral de diversidad económica;cuantitativa;aumentar;8;13;13;/13;;;;;
+4;2;Distritos urbanos estratégicos de regeneración;Distritos con plan integral, cartera e intervención detonante.;cuantitativa;aumentar;0;3;3;;;;;;
+4;3;Territorios de desarrollo metropolitano integral;Comunas en condición de rezago con priorización (Tiltil y San José de Maipo);cuantitativa;aumentar;0;2;2;comunas;;2 comunas con cartera consolidada;;;
+4;4;Gobernanza del desarrollo policéntrico;;gestion;;;;;;;Mesa metropolitana en operación;Sin mecanismo permanente;;
