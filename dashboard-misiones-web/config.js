@@ -12,6 +12,18 @@
 window.CONFIG = {
   anio_meta: 2041,
 
+  /* CARTOGRAFÍA DESDE ARCGIS ONLINE
+     URL del servicio de capas de entidades de las misiones (la que termina en /FeatureServer).
+     Si está llena, el mapa lee TODAS sus capas desde ahí y no usa los archivos mapa_m1 … mapa_vision.
+     Cada capa se reconoce por su nombre (los nombres publicados están en datos/estilos_capas.json, en "alias")
+     y su misión por el campo "mision" de sus elementos. Las copias de capas del grupo Visión se ignoran:
+     el mapa de la visión toma las capas de cada misión.
+     Si una capa nueva se publicó como un elemento aparte, pon las URL en una lista:
+       cartografia_arcgis: ["https://…/Misiones_Metropolitanas_WFL1/FeatureServer", "https://…/Capa_nueva/FeatureServer"],
+     Para que una URL completa se asigne a una sola misión, usa un objeto: { m1: "https://…", vision: "https://…" }.
+     Déjala vacía ("") para usar los archivos de la carpeta datos. */
+  cartografia_arcgis: "https://services9.arcgis.com/kKJR3Qt68ohAWuet/arcgis/rest/services/Misiones_Metropolitanas_WFL1/FeatureServer",
+
   fuentes: {
     misiones:   "datos/misiones.csv",
     metas:      "datos/metas.csv",

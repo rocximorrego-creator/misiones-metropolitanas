@@ -240,11 +240,126 @@ async function loadTable(name){
   if (/\.json(\?|$)/i.test(u) || /^\s*[\[{]/.test(t)) return JSON.parse(t);
   return parseCSV(t);
 }
+const CAPA_TIPO = {};
+const capaKey = n => String(n||"").trim().replace(/\s+/g,"_");
+function normFeat(f, capa){
+  const p = f.properties = f.properties || {};
+  for (const k of Object.keys(p)) { const lk=k.toLowerCase(); if (lk!==k && p[lk]===undefined) p[lk]=p[k]; }
+  if ((p.id===undefined || p.id===null || p.id==="") && p.id_inic!==undefined) p.id=p.id_inic;
+  if (capa) p.capa = capa;
+  p.capa = capaKey(p.capa);
+  return f;
+}
 async function loadGeo(name){
   const u = CFG.fuentes[name]; if (!u) return {type:"FeatureCollection",features:[]};
   const j = JSON.parse(await getText(isArcGIS(u) ? arcgisQuery(u,true) : u));
-  j.features.forEach(f=>{ const p=f.properties; for (const k of Object.keys(p)) { const lk=k.toLowerCase(); if (lk!==k){ p[lk]=p[k]; } } if (p.id===undefined && p.id_inic!==undefined) p.id=p.id_inic; });
+  if (j.error) throw new Error(u + ": " + j.error.message);
+  j.features.forEach(f=>normFeat(f));
   return j;
+}
+/* Cartografía completa desde un servicio de ArcGIS Online (todas las capas de una URL /FeatureServer).
+   Cada capa se reconoce por su nombre: el nombre interno (M1_… M4_, V_), uno de los nombres publicados
+   que aparecen en "alias" de datos/estilos_capas.json, o el campo "categoria" de sus elementos.
+   La misión sale del campo "mision" de los elementos (Misión 1 … 4, Visión) o del prefijo del nombre.
+   Si una capa aparece dos veces en el servicio (por ejemplo, copiada en el grupo Visión), se usa la primera. */
+const CARTO_ERR = [];
+const CARTO = (()=>{ const c = CFG.cartografia_arcgis;
+  if (c && typeof c==="object" && !Array.isArray(c)) return Object.entries(c).map(([k,u])=>({u:String(u||"").trim(), key:String(k).toLowerCase()})).filter(x=>x.u);
+  return [].concat(c||[]).map(u=>String(u).trim()).filter(Boolean).map(u=>({u, key:null})); })();
+const normName = v => String(v??"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+const misionKey = v => { const t=normName(v), m=t.match(/^m(?:ision)?\s*([1-4])\b/); return m ? "m"+m[1] : (/^v(?:ision)?\b/.test(t) ? "vision" : null); };
+const prefKey = k => { const m=String(k).match(/^M_?([1-4])(_|$)/i); return m ? "m"+m[1] : (/^V(_|$)/i.test(k) ? "vision" : null); };
+let ALIAS = null;
+function aliasIndex(){
+  if (ALIAS) return ALIAS; ALIAS = {};
+  Object.entries(STY).forEach(([k,s])=>[k, s.etiqueta, ...(s.alias||[])].forEach(a=>{ const n=normName(a); if (!n) return; const l=(ALIAS[n] ||= []); if (!l.includes(k)) l.push(k); }));
+  return ALIAS;
+}
+const GTYPE = {esriGeometryPoint:"pt", esriGeometryMultipoint:"pt", esriGeometryPolyline:"lin", esriGeometryPolygon:"pol"};
+const rgbHex = c => Array.isArray(c) ? "#"+c.slice(0,3).map(x=>(+x).toString(16).padStart(2,"0")).join("") : null;
+function resolveLayer(ly, fs, fixedKey){
+  const tipo = GTYPE[ly.geometryType];
+  const p0 = (fs.find(f=>f.properties)||{}).properties || {};
+  const A = aliasIndex();
+  let c = A[normName(ly.name)] || [];
+  if (!c.length && p0.categoria) c = A[normName(p0.categoria)] || [];
+  if (!c.length && /^(M_?[1-4]|V)_/i.test(capaKey(ly.name))) c = [capaKey(ly.name)];
+  if (tipo){ const t=c.filter(k=>!STY[k] || STY[k].tipo===tipo); if (t.length) c=t; }
+  const mk = fixedKey || misionKey(p0.mision) || null;
+  if (mk){ const t=c.filter(k=>prefKey(k)===mk); if (t.length) c=t; }
+  const capa = c[0] || capaKey(ly.name);
+  return {capa, key: mk || prefKey(capa), tipo};
+}
+async function loadArcGISService(u, fixedKey){
+  const base = u.replace(/\/query.*$/i,"").replace(/\/+$/,"").replace(/\/\d+$/,"");
+  let info = null;
+  try { info = JSON.parse(await getText(base + "/layers?f=json")); if (info.error || !info.layers) info = null; } catch(e){ info = null; }
+  if (!info){ info = JSON.parse(await getText(base + "?f=json")); if (info.error) throw new Error("ArcGIS: " + info.error.message); }
+  const lys = (info.layers||[]).filter(ly=>!ly.type || /feature layer/i.test(ly.type)).sort((a,b)=>a.id-b.id);
+  const out = {m1:[], m2:[], m3:[], m4:[], vision:[]}, seen = new Set();
+  /* 1) Capas que se reconocen solo por el nombre: se descartan antes de descargarlas las repetidas y las auxiliares */
+  const plan = lys.map(ly=>{
+    const r = resolveLayer(ly, [], fixedKey), A = aliasIndex();
+    const nCand = (A[normName(ly.name)]||[]).filter(k=>!STY[k] || STY[k].tipo===r.tipo).length;
+    const sure = !!STY[r.capa] && nCand===1 && !!r.key;
+    if (sure){
+      const id = r.key+"|"+r.capa;
+      if (STY[r.capa].oculta && !STY[r.capa].ancla) return null;
+      if (seen.has(id)){ console.info(`Capa "${ly.name}" (id ${ly.id}) repetida: se usa la primera "${r.capa}".`); return null; }
+      seen.add(id);
+    }
+    return {ly, r, sure};
+  }).filter(Boolean);
+  /* 2) Descargar los elementos */
+  const res = await Promise.all(plan.map(async x=>{
+    const ly = x.ly, fs = [];
+    for (let off=0, guard=0; guard<50; guard++){
+      const j = JSON.parse(await getText(`${base}/${ly.id}/query?where=1%3D1&outFields=*&returnGeometry=true&outSR=4326&f=geojson&resultOffset=${off}&resultRecordCount=1000`));
+      if (j.error) throw new Error(`ArcGIS (${ly.name}): ` + j.error.message);
+      const page = j.features || [];
+      page.forEach(f=>normFeat(f)); fs.push(...page);
+      const more = j.exceededTransferLimit || (j.properties && j.properties.exceededTransferLimit);
+      if (!more || !page.length) break;
+      off += page.length;
+    }
+    return {...x, fs};
+  }));
+  /* 3) Asignar cada capa a su misión (las dudosas, con el campo mision de sus elementos) */
+  let lastKey = fixedKey || null;
+  res.forEach(({ly, r, sure, fs})=>{
+    let {capa, key, tipo} = sure ? r : resolveLayer(ly, fs, fixedKey);
+    key = key || lastKey; lastKey = key;
+    if (!key || !out[key]){ console.warn("Capa sin misión (agrega el campo mision o el prefijo M1_ … M4_ / V_ al nombre):", ly.name); return; }
+    if (!sure){
+      const id = key+"|"+capa;
+      if (seen.has(id)){ console.info(`Capa "${ly.name}" (id ${ly.id}) repetida: se usa la primera "${capa}".`); return; }
+      seen.add(id);
+    }
+    if (!STY[capa]){
+      const sym = ly.drawingInfo?.renderer?.symbol;
+      STY[capa] = {tipo: tipo||"lin", color: rgbHex(sym?.color) || rgbHex(sym?.outline?.color) || null, tam: tipo==="pt"?7:(tipo==="lin"?3:.5), transp: tipo==="pol"?40:0, etiqueta: ly.name};
+      if (!STY[capa].color) delete STY[capa].color;
+    }
+    CAPA_TIPO[capa] = tipo || CAPA_TIPO[capa];
+    if (STY[capa].oculta && !STY[capa].ancla) return;
+    fs.forEach(f=>{ f.properties.capa = capa; out[key].push(f); });
+  });
+  return Object.fromEntries(Object.entries(out).map(([k,fs])=>[k,{type:"FeatureCollection",features:fs}]));
+}
+/* Iniciativas que están en el mapa pero no en iniciativas.csv: se agregan a la lista con el nombre y eje de la capa. */
+function completeFromMap(){
+  M.forEach(m=>{
+    const known = new Set(m.ini.map(i=>i[1]));
+    (GEO["m"+m.id]?.features||[]).slice().sort((a,b)=>(b.properties.eje?1:0)-(a.properties.eje?1:0)).forEach(f=>{
+      const p=f.properties, n=nId(p.id); if (n===null || known.has(n)) return;
+      const em = String(p.eje??"").match(/^\s*E?\s*(\d+)\.?\s*(.*)$/i);
+      const e = em ? +em[1] : 0;
+      if (e && !m.ejes[e] && em[2]) m.ejes[e] = em[2];
+      m.ini.push([m.ejes[e] ? e : 0, n, p.nombre || `Iniciativa ${n}`]); known.add(n);
+    });
+    m.ini.sort((a,b)=>a[1]-b[1]);
+    if (m.ini.some(i=>i[0]===0)) m.ejes[0]="Otras rotuladas en el mapa (sin descripción en el listado)";
+  });
 }
 
 /* ---------- Armar el modelo a partir de las tablas ---------- */
@@ -343,14 +458,23 @@ function metaCard(t, m, extra){
 
 /* ---------- Mapa interactivo (Leaflet) ---------- */
 const nId = v => { const n = parseInt(String(v??"").trim(),10); return isFinite(n) ? n : null; };
-function styleFor(capa, hex){
-  const s = STY[capa] || {tipo:"lin", color:hex, tam:2, transp:0};
+function styleOf(capa, p){
+  let s = STY[capa]; const vr = s && s.variantes;
+  if (vr && p){ const v = (vr.valores||{})[String(p[String(vr.campo||"").toLowerCase()] ?? "").trim()]; if (v) s = {...s, ...v}; }
+  return s;
+}
+function styleFor(capa, hex, p){
+  if (!STY[capa]){ const t=CAPA_TIPO[capa]||"lin"; STY[capa]={tipo:t, color:hex||"#243168", tam:t==="pt"?7:(t==="lin"?3:.5), transp:t==="pol"?40:0, etiqueta:String(capa).replace(/^(M\d|V)_/,"").replace(/_/g," ")}; }
+  if (!STY[capa].color) STY[capa].color = hex || "#243168";
+  const s = styleOf(capa, p);
   const op = 1 - (s.transp||0)/100;
-  if (s.tipo==="pol") return {kind:"pol", base:{color:s.color, weight:1, opacity:Math.min(1,op+.2), fillColor:s.color, fillOpacity:op*.75}};
+  if (s.tipo==="pol") return {kind:"pol", base:{color:s.borde||s.color, weight:s.borde?1.3:1, opacity:Math.min(1,op+.2), fillColor:s.color, fillOpacity:op*.75, dashArray:s.borde?(s.trazo||null):null}};
   if (s.tipo==="pt")  return {kind:"pt", base:{radius:Math.max(3,s.tam/2+1), color:"#fff", weight:1.2, fillColor:s.color, fillOpacity:1, opacity:1}};
-  return {kind:"lin", base:{color:s.color, weight:Math.min(7,Math.max(1.5,s.tam*.9)), opacity:op, lineCap:"round", dashArray: capa==="M4_conexion_01_02" ? "4 5" : null}};
+  return {kind:"lin", base:{color:s.color, weight:Math.min(7,Math.max(1.5,s.tam*.9)), opacity:op, lineCap:s.trazo?"butt":"round", dashArray:s.trazo||null}};
 }
 const ORDER = {pol:0, lin:1, pt:2};
+/* Orden de dibujo dentro de cada tipo: el orden de las capas en estilos_capas.json (de abajo hacia arriba) */
+const zIdx = capa => { const i = Object.keys(STY).indexOf(capa); return i<0 ? 9999 : i; };
 function baseMap(div, key){
   const map = L.map(div, {scrollWheelZoom:false, zoomSnap:.25, attributionControl:true});
   /* Mapas base gratuitos, sin clave. Se elige con el botón de capas (arriba a la derecha). */
@@ -382,9 +506,16 @@ function docTools(wrap, doc){
   ck.onchange=upd; rg.oninput=upd; wrap.append(t);
 }
 function legendHTML(capas){
-  return capas.map(c=>{ const s=STY[c]; if(!s) return ""; const cls = s.tipo==="pt"?"pt":(s.tipo==="lin"?"lin":"");
-    const st = s.tipo==="pol" ? `background:${s.color};opacity:${(1-(s.transp||0)/100)*.75+.2}` : `background:${s.color}`;
-    return `<span><i class="${cls}" style="${st}"></i>${esc(s.etiqueta||c)}</span>`; }).join("");
+  const item = (s, lab) => {
+    const cls = s.tipo==="pt"?"pt":(s.tipo==="lin"?"lin":"");
+    let st;
+    if (s.tipo==="pol") st = `background:${s.color};opacity:${(1-(s.transp||0)/100)*.75+.2}` + (s.borde?`;border:1.5px ${s.trazo?"dashed":"solid"} ${s.borde}`:"");
+    else if (s.tipo==="lin" && s.trazo) st = `background:repeating-linear-gradient(90deg,${s.color} 0 5px,transparent 5px 9px)`;
+    else st = `background:${s.color}`;
+    return `<span><i class="${cls}" style="${st}"></i>${esc(lab)}</span>`; };
+  return [...new Set(capas)].map(c=>{ const s=STY[c]; if (!s || s.oculta) return "";
+    if (s.variantes && s.variantes.valores) return Object.values(s.variantes.valores).map(v=>item({...s, ...v}, v.etiqueta||s.etiqueta||c)).join("");
+    return item(s, s.etiqueta||c); }).join("");
 }
 
 function renderMission(m){
@@ -435,9 +566,17 @@ function renderMission(m){
   const ejeOf = Object.fromEntries(m.ini.map(i=>[i[1], i[0]]));
   const {map, doc} = baseMap($("#lmap",v), "m"+m.id); currentMap = map;
   const byNum = {}, ctx = [], groupAll = L.featureGroup().addTo(map);
-  const feats = fc.features.slice().sort((a,b)=>ORDER[styleFor(a.properties.capa).kind]-ORDER[styleFor(b.properties.capa).kind]);
+  /* Las capas de etiquetas (n.º de iniciativa) no se dibujan: dan la posición del número en el mapa. */
+  const anchors = {};
+  const feats = fc.features.filter(f=>{ const s=STY[f.properties.capa];
+    if (s && s.ancla){ const n=nId(f.properties.id), g=f.geometry; if (n!==null && g && g.type==="Point") (anchors[n] ||= []).push(L.latLng(g.coordinates[1], g.coordinates[0])); return false; }
+    return !(s && s.oculta); })
+    .sort((a,b)=>ORDER[styleFor(a.properties.capa).kind]-ORDER[styleFor(b.properties.capa).kind] || zIdx(a.properties.capa)-zIdx(b.properties.capa));
+  /* Iniciativas que solo tienen número en el mapa (sin otra geometría): un punto invisible en la etiqueta */
+  Object.keys(anchors).forEach(n=>{ if (!feats.some(f=>nId(f.properties.id)===+n)) { const a=fc.features.find(f=>nId(f.properties.id)===+n && STY[f.properties.capa]?.ancla); if (a) feats.push({...a, _soloNumero:true}); } });
   feats.forEach(f=>{
-    const p=f.properties, sty=styleFor(p.capa, m.hex), n=nId(p.id);
+    const p=f.properties, n=nId(p.id);
+    const sty = f._soloNumero ? {kind:"pt", base:{radius:3, color:m.hex, weight:0, opacity:0, fillOpacity:0}} : styleFor(p.capa, m.hex, p);
     const lyr = L.geoJSON(f, {
       style: () => sty.base,
       pointToLayer: (_f, ll) => L.circleMarker(ll, sty.base)
@@ -462,7 +601,8 @@ function renderMission(m){
     const ls=[]; lyrs.forEach(g=>g.eachLayer(l=>ls.push(l)));
     ls.sort((a,b)=>prio[a._kind]-prio[b._kind]);
     const l=ls[0]; let ll;
-    if (l._kind==="pt") ll=l.getLatLng();
+    if (anchors[n]){ const bb=L.latLngBounds([]); lyrs.forEach(g=>bb.extend(g.getBounds())); const c=bb.isValid()?bb.getCenter():anchors[n][0]; ll=anchors[n].reduce((a,b)=>a.distanceTo(c)<=b.distanceTo(c)?a:b); }
+    else if (l._kind==="pt") ll=l.getLatLng();
     else if (l._kind==="lin"){ const pts=l.getLatLngs().flat(3); ll=pts[Math.floor(pts.length/2)]; }
     else ll=l.getBounds().getCenter();
     const mk=L.marker(ll,{icon:L.divIcon({className:"", html:`<span class="nlab" style="--c:${m.hex}">${n}</span>`, iconSize:[24,24], iconAnchor:[12,12]}), keyboard:true, title:`Iniciativa ${n}`, zIndexOffset:500});
@@ -474,7 +614,7 @@ function renderMission(m){
   fitAll(); resetControl(map, ()=>{ select(null); fitAll(); });
   docTools($("#mapwrap",v), doc);
   $("#mapwrap",v).insertBefore($(".maptools",v)||document.createTextNode(""), $("#leg",v));
-  const capasPresent = [...new Set(fc.features.map(f=>f.properties.capa))];
+  const capasPresent = [...new Set(feats.filter(f=>!f._soloNumero).map(f=>f.properties.capa))];
   $("#leg",v).innerHTML = legendHTML(capasPresent);
   setTimeout(()=>map.invalidateSize(), 50);
 
@@ -554,7 +694,7 @@ function renderMission(m){
     const b=L.latLngBounds([]); lyrs.forEach(g=>b.extend(g.getBounds()));
     if (fly){ map.flyToBounds(b,{padding:[50,50], maxZoom:15, duration:.7});
       const r=$("#lmap",v).getBoundingClientRect(); if (r.bottom<0 || r.top>window.innerHeight) $("#lmap",v).scrollIntoView({behavior:"smooth",block:"center"}); }
-    const cats=[...new Set(lyrs.map(g=>STY[g.getLayers()[0]._capa]?.etiqueta).filter(Boolean))];
+    const cats=[...new Set(lyrs.map(g=>{ const l=g.getLayers()[0], s=STY[l._capa]; return s && !s.oculta ? styleOf(l._capa, l._f.properties).etiqueta : null; }).filter(Boolean))];
     const notas=[...new Set(lyrs.map(g=>g.getLayers()[0]._f.properties.nota).filter(Boolean))];
     const e=ejeOf[n];
     const html=`<div class="pop"><b>${n}.</b> ${esc(nameOf[n]||"")}<br><span class="k">${e?`E${e}. ${esc(m.ejes[e]||"")}`:"Sin descripción en el listado"}</span>${cats.length?`<br><span class="k">${esc(cats.join(" · "))}</span>`:""}${notas.length?`<br><span class="k"><i>${esc(notas.join(" · "))}</i></span>`:""}</div>`;
@@ -587,7 +727,11 @@ function renderMission(m){
 }
 
 /* ---------- Visión ---------- */
-const VISION_CAPAS = {0:["V_areas_agricolas_prioritarias","V_corredores_ecologicos"], 1:["M1_corredores_intervencion","M1_puntos_conexion_TP_rural"], 2:["M2_bordes_autopistas_ferroviarios"], 3:["M3_parques_areas_verdes"], 4:["M4_territorios_desarrollo_areas","M4_subcentros_distritos"]};
+const VISION_CAPAS = {0:["V_areas_agricolas_prioritarias","V_buffer_corredores_franja","V_buffer_corredores_nucleo"],
+  1:["M1_buffer_ejes_PRETEM_morado","M1_buffer_ejes_metropolitanos_azul","M1_puntos_conexion_TP_rural"],
+  2:["M2_buffer_bordes_autopistas","M2_buffer_bordes_ferroviarios","M2_buffer_entornos_puntos"],
+  3:["M3_parques_areas_verdes","M3_parques_corredores_lineales"],
+  4:["M4_buffer_territorios_franja","M4_buffer_territorios_nodos","M4_buffer_subcentros","M4_buffer_distritos","M4_subcentros_distritos"]};
 function renderVision(){
   document.documentElement.style.setProperty("--c","var(--navy)");
   const v=el("section",{class:"view",style:"--c:var(--navy)"});
@@ -648,7 +792,7 @@ function renderVision(){
   const groups = {};
   const addCapa = (mid, fc, capa, hex) => {
     (fc?.features||[]).filter(f=>f.properties.capa===capa).forEach(f=>{
-      const sty=styleFor(capa, hex), p=f.properties, n=nId(p.id);
+      const p=f.properties, sty=styleFor(capa, hex, p), n=nId(p.id);
       const lyr=L.geoJSON(f,{style:()=>sty.base, pointToLayer:(_f,ll)=>L.circleMarker(ll,sty.base)});
       const m=M.find(x=>x.id===mid);
       if (m && n!==null){
@@ -662,7 +806,8 @@ function renderVision(){
       (groups[mid] ||= L.featureGroup()).addLayer(lyr);
     });
   };
-  [0,3,2,4,1].forEach(mid=>VISION_CAPAS[mid].forEach(c=>addCapa(mid, mid===0?GEO.vision:GEO["m"+mid], c, mid?M.find(x=>x.id===mid)?.hex:"#6E8F4E")));
+  /* primero polígonos, luego líneas y al final puntos, para que los puntos queden encima */
+  ["pol","lin","pt"].forEach(kind=>[0,3,2,4,1].forEach(mid=>VISION_CAPAS[mid].filter(c=>(STY[c]?.tipo||"pol")===kind).forEach(c=>addCapa(mid, mid===0?GEO.vision:GEO["m"+mid], c, mid?M.find(x=>x.id===mid)?.hex:"#6E8F4E"))));
   Object.values(groups).forEach(g=>g.addTo(map));
   const all=L.latLngBounds([]); Object.values(groups).forEach(g=>all.extend(g.getBounds()));
   const fit=()=>all.isValid()?map.fitBounds(all,{padding:[10,10]}):map.setView([-33.45,-70.65],9);
@@ -686,13 +831,17 @@ function renderVision(){
     if (!window.L) throw new Error("No se pudo cargar la librería del mapa (Leaflet).");
     const names=["misiones","metas","ejes","iniciativas","actores"];
     const tabsData = Object.fromEntries(await Promise.all(names.map(async n=>[n, await loadTable(n)])));
-    const [sty, lim, ...geos] = await Promise.all([
+    const [sty, lim] = await Promise.all([
       getText(CFG.fuentes.estilos).then(JSON.parse).catch(()=>({})),
-      getText(CFG.fuentes.limites_doc).then(JSON.parse).catch(()=>({})),
-      ...["m1","m2","m3","m4","vision"].map(k=>loadGeo(k==="vision"?"mapa_vision":"mapa_"+k).catch(err=>{ console.warn(err); return {type:"FeatureCollection",features:[]}; }))
+      getText(CFG.fuentes.limites_doc).then(JSON.parse).catch(()=>({}))
     ]);
-    STY=sty; BOUNDS=lim; ["m1","m2","m3","m4","vision"].forEach((k,i)=>GEO[k]=geos[i]);
+    STY=sty; BOUNDS=lim;
+    const geos = await Promise.all(CARTO.length ? CARTO.map(c=>loadArcGISService(c.u, c.key).catch(err=>{ console.warn(err); CARTO_ERR.push(c.u+" → "+err.message); return {m1:{features:[]},m2:{features:[]},m3:{features:[]},m4:{features:[]},vision:{features:[]}}; })) :
+        ["m1","m2","m3","m4","vision"].map(k=>loadGeo(k==="vision"?"mapa_vision":"mapa_"+k).catch(err=>{ console.warn(err); return {type:"FeatureCollection",features:[]}; })));
+    if (CARTO.length){ ["m1","m2","m3","m4","vision"].forEach(k=>GEO[k]={type:"FeatureCollection",features:geos.flatMap(g=>g[k].features)}); } else ["m1","m2","m3","m4","vision"].forEach((k,i)=>GEO[k]=geos[i]);
     build(tabsData);
+    completeFromMap();
+    if (CARTO_ERR.length){ const d=document.createElement("div"); d.className="banner"; d.innerHTML=`<b>No se pudo leer la cartografía de ArcGIS Online.</b> Los datos se muestran, pero el mapa puede estar incompleto. Revisa que la capa esté compartida como pública y que la URL de <code>cartografia_arcgis</code> en <code>config.js</code> termine en <code>/FeatureServer</code>.<br><small>${CARTO_ERR.map(esc).join("<br>")}</small>`; document.body.insertBefore(d, document.body.firstChild.nextSibling); }
     buildTabs();
     const tot=M.reduce((s,m)=>s+m.total,0);
     $("#h1").textContent = `Misiones metropolitanas al ${ANIO}`;

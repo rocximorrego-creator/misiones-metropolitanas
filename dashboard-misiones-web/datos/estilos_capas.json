@@ -1,170 +1,511 @@
 {
- "M1_areas_influencia": {
+ "M1_buffer_estaciones_tren": {
   "tipo": "pol",
-  "color": "#BEDCF5",
+  "color": "#CDE4F6",
   "tam": 0.8,
-  "transp": 45,
-  "etiqueta": "Área de influencia (área de servicio transporte rural integrado)"
+  "transp": 25,
+  "etiqueta": "Área de servicio TP rural (buffer de estaciones de tren)",
+  "alias": [
+   "Área de servicio TP rural (buffer estaciones de tren)",
+   "Área de servicio transporte rural integrado"
+  ],
+  "borde": "#3D8FD0",
+  "trazo": "5 4"
  },
- "M1_corredores_intervencion": {
-  "tipo": "lin",
-  "color": "#3C5AAA",
-  "tam": 6.0,
-  "transp": 30,
-  "etiqueta": "Corredor de intervención priorizado"
+ "M1_buffer_ejes_metropolitanos_azul": {
+  "tipo": "pol",
+  "color": "#5B7FC4",
+  "tam": 0.5,
+  "transp": 35,
+  "etiqueta": "Corredor de eje metropolitano (buffer)",
+  "alias": [
+   "Corredores ejes metropolitanos (buffer)",
+   "Ejes metropolitanos"
+  ]
  },
- "M1_ciclovias": {
-  "tipo": "lin",
-  "color": "#78286E",
-  "tam": 2.0,
-  "transp": 0,
-  "etiqueta": "Trazados y conexiones de ciclovías"
+ "M1_buffer_ejes_PRETEM_morado": {
+  "tipo": "pol",
+  "color": "#524696",
+  "tam": 0.5,
+  "transp": 25,
+  "etiqueta": "Corredor de eje PRETEM (buffer)",
+  "alias": [
+   "Corredores ejes PRETEM (buffer)",
+   "Ejes PRETEM"
+  ]
  },
- "M1_recorridos_TP_rural": {
+ "M1_ejes_corredores": {
   "tipo": "lin",
-  "color": "#28285A",
+  "color": "#285AAA",
   "tam": 1.6,
   "transp": 0,
-  "etiqueta": "Recorridos de Transporte Público Rural"
+  "etiqueta": "Eje del corredor",
+  "alias": [
+   "Ejes (línea central)",
+   "Ejes Metropolitanos"
+  ],
+  "variantes": {
+   "campo": "tipo",
+   "valores": {
+    "PRETEM": {
+     "color": "#14145A",
+     "tam": 2.2,
+     "etiqueta": "Eje PRETEM"
+    },
+    "Eje metropolitano": {
+     "color": "#285AAA",
+     "tam": 1.6,
+     "etiqueta": "Eje metropolitano"
+    }
+   }
+  }
+ },
+ "M1_estaciones_tren_buffer_centros": {
+  "tipo": "pt",
+  "color": "#434289",
+  "tam": 4,
+  "transp": 0,
+  "etiqueta": "Centro de buffer (estación de tren)",
+  "alias": [
+   "Centros de buffer (estaciones de tren)"
+  ],
+  "oculta": true
  },
  "M1_puntos_conexion_TP_rural": {
   "tipo": "pt",
-  "color": "#4696DC",
-  "tam": 8.0,
+  "color": "#4AA0E0",
+  "tam": 8,
   "transp": 0,
-  "etiqueta": "Punto de conexión TP rural / centro de intercambio"
+  "etiqueta": "Punto de conexión TP rural / estación de tren",
+  "alias": [
+   "Puntos de conexión TP rural / estaciones de tren",
+   "Estaciones de tren / centros de intercambio rural"
+  ]
  },
  "M1_estaciones_metro_intermodales": {
   "tipo": "pt",
-  "color": "#2D2D64",
-  "tam": 6.0,
+  "color": "#2D2D66",
+  "tam": 6,
   "transp": 0,
-  "etiqueta": "Estación de metro / intermodal sobre corredor"
+  "etiqueta": "Estación de metro / intermodal",
+  "alias": [
+   "Estaciones de metro e intermodales"
+  ]
  },
  "M1_puntos_destacados": {
   "tipo": "pt",
   "color": "#7D0FCD",
-  "tam": 7.0,
+  "tam": 6,
   "transp": 0,
-  "etiqueta": "Punto destacado de las iniciativas (recorridos peatonales y entornos de estaciones)"
+  "etiqueta": "Recorridos peatonales y entornos de estaciones",
+  "alias": [
+   "Recorridos peatonales y entornos de estaciones"
+  ]
  },
- "M2_bordes_autopistas_ferroviarios": {
+ "M2_buffer_bordes_autopistas": {
+  "tipo": "pol",
+  "color": "#F4AAAA",
+  "tam": 0.5,
+  "transp": 40,
+  "etiqueta": "Mejoramiento de bordes de autopistas urbanas (buffer)",
+  "alias": [
+   "Mejoramiento de bordes de autopistas urbanas (buffer)",
+   "Mejoramiento de bordes de autopistas urbanas"
+  ]
+ },
+ "M2_buffer_bordes_ferroviarios": {
+  "tipo": "pol",
+  "color": "#F096A5",
+  "tam": 0.5,
+  "transp": 40,
+  "etiqueta": "Mejoramiento de bordes ferroviarios (buffer)",
+  "alias": [
+   "Mejoramiento de bordes ferroviarios (buffer)",
+   "Mejoramiento de bordes ferroviarios"
+  ]
+ },
+ "M2_ejes_autopistas_ferroviarios": {
   "tipo": "lin",
-  "color": "#F09696",
-  "tam": 5.0,
-  "transp": 20,
-  "etiqueta": "Mejoramiento de bordes de autopistas y ferroviarios"
+  "color": "#C81E1E",
+  "tam": 1.2,
+  "transp": 0,
+  "etiqueta": "Eje de autopista o línea ferroviaria",
+  "alias": [
+   "Ejes de autopistas y ferrocarriles"
+  ],
+  "variantes": {
+   "campo": "tipo",
+   "valores": {
+    "Autopista urbana": {
+     "color": "#C81E1E",
+     "etiqueta": "Autopista urbana"
+    },
+    "Línea ferroviaria EFE": {
+     "color": "#1E2878",
+     "trazo": "5 3",
+     "etiqueta": "Línea ferroviaria EFE"
+    }
+   }
+  }
+ },
+ "M2_buffer_entornos_puntos": {
+  "tipo": "pol",
+  "color": "#E16E6E",
+  "tam": 0.5,
+  "transp": 45,
+  "etiqueta": "Entorno de equipamientos, estaciones e iluminación (buffer 1 km)",
+  "alias": [
+   "Entornos de puntos (buffer 1 km)",
+   "Recuperación de equipamientos, estaciones e iluminación"
+  ],
+  "variantes": {
+   "campo": "id_inic",
+   "valores": {
+    "01": {
+     "color": "#E16E6E",
+     "etiqueta": "Entorno de hospitales prioritarios (buffer)"
+    },
+    "03": {
+     "color": "#A04B4B",
+     "etiqueta": "Entorno de estaciones de metro, trenes e intermodales (buffer)"
+    },
+    "04": {
+     "color": "#EB7878",
+     "etiqueta": "Calles iluminadas (buffer)"
+    }
+   }
+  }
  },
  "M2_entornos_estaciones": {
   "tipo": "pt",
-  "color": "#6E0F14",
-  "tam": 7.0,
+  "color": "#5F0A0A",
+  "tam": 5,
   "transp": 0,
-  "etiqueta": "Entornos de estaciones de metro / trenes / intermodales"
+  "etiqueta": "Estación (entorno)",
+  "alias": [
+   "Estaciones (entornos)"
+  ]
  },
  "M2_entornos_hospitales": {
   "tipo": "pt",
-  "color": "#DC1E1E",
-  "tam": 10.0,
+  "color": "#780000",
+  "tam": 7,
   "transp": 0,
-  "etiqueta": "Mejoramiento de entorno de hospitales prioritarios"
+  "etiqueta": "Hospital prioritario",
+  "alias": [
+   "Hospitales prioritarios"
+  ]
  },
  "M2_calles_iluminadas": {
   "tipo": "pt",
-  "color": "#FA3C3C",
-  "tam": 8.0,
+  "color": "#E61414",
+  "tam": 7,
   "transp": 0,
-  "etiqueta": "Programa calles iluminadas"
+  "etiqueta": "Calles iluminadas",
+  "alias": [
+   "Calles iluminadas"
+  ]
  },
- "M3_areas_influencia_drenaje": {
+ "M3_areas_influencia": {
   "tipo": "pol",
-  "color": "#B4C8E1",
+  "color": "#C4D4E8",
   "tam": 0.5,
-  "transp": 40,
-  "etiqueta": "Área de influencia / área prioritaria de drenaje y resiliencia hídrica"
+  "transp": 35,
+  "etiqueta": "Área prioritaria de drenaje y resiliencia hídrica",
+  "alias": [
+   "Área de influencia",
+   "Áreas prioritarias de drenaje y resiliencia hídrica"
+  ]
  },
- "M3_corredores_fluviales": {
+ "M3_buffer_corredor_fluvial_franja": {
+  "tipo": "pol",
+  "color": "#D6E8BE",
+  "tam": 0.5,
+  "transp": 10,
+  "etiqueta": "Corredor fluvial verde-azul: franja exterior (buffer)",
+  "alias": [
+   "Corredor fluvial verde-azul - franja exterior (buffer)"
+  ]
+ },
+ "M3_buffer_corredor_fluvial_nucleo": {
+  "tipo": "pol",
+  "color": "#9BBD77",
+  "tam": 0.5,
+  "transp": 10,
+  "etiqueta": "Corredor fluvial verde-azul: núcleo (buffer)",
+  "alias": [
+   "Corredor fluvial verde-azul - núcleo (buffer)"
+  ]
+ },
+ "M3_cauces": {
   "tipo": "lin",
-  "color": "#78AF6E",
-  "tam": 5.0,
-  "transp": 15,
-  "etiqueta": "Corredor fluvial verde-azul (corredores ecológicos, ríos, humedales y quebradas)"
+  "color": "#2E75B6",
+  "tam": 1.3,
+  "transp": 0,
+  "etiqueta": "Cauce (ríos, canales y quebradas)",
+  "alias": [
+   "Cauces (ríos, canales y quebradas)"
+  ]
+ },
+ "M3_ejes_corredores_fluviales": {
+  "tipo": "lin",
+  "color": "#2E75B6",
+  "tam": 1,
+  "transp": 0,
+  "etiqueta": "Eje del corredor fluvial",
+  "alias": [
+   "Ejes de los corredores fluviales (base de los buffers)"
+  ],
+  "oculta": true
  },
  "M3_parques_areas_verdes": {
   "tipo": "pol",
   "color": "#196905",
   "tam": 0.5,
   "transp": 0,
-  "etiqueta": "Parques y áreas verdes"
+  "etiqueta": "Parques y áreas verdes",
+  "alias": [
+   "Parques y áreas verdes",
+   "Áreas verdes y espacios públicos metropolitanos"
+  ]
  },
  "M3_parques_corredores_lineales": {
   "tipo": "lin",
   "color": "#196905",
-  "tam": 3.0,
+  "tam": 3,
   "transp": 0,
-  "etiqueta": "Parque o corredor verde lineal"
+  "etiqueta": "Parque o corredor verde lineal",
+  "alias": [
+   "Parque o corredor verde lineal",
+   "Parques y corredores verdes lineales"
+  ]
+ },
+ "M3_buffer_puntos_iniciativa05": {
+  "tipo": "pol",
+  "color": "#96BE6E",
+  "tam": 0.5,
+  "transp": 15,
+  "etiqueta": "Entorno del punto 05 (buffer 500 m)",
+  "alias": [
+   "Entorno del punto 05 (buffer 500 m)"
+  ]
  },
  "M3_puntos_intervencion": {
   "tipo": "pt",
-  "color": "#3C6E96",
-  "tam": 4.0,
+  "color": "#2D6EA5",
+  "tam": 5,
   "transp": 0,
-  "etiqueta": "Punto de intervención"
+  "etiqueta": "Punto de intervención",
+  "alias": [
+   "Puntos de intervención"
+  ]
  },
  "M3_puntos_iniciativa05": {
   "tipo": "pt",
-  "color": "#2878A5",
-  "tam": 9.0,
+  "color": "#2D6EA5",
+  "tam": 7,
   "transp": 0,
-  "etiqueta": "Puntos rotulados 05"
+  "etiqueta": "Punto 05",
+  "alias": [
+   "Punto 05"
+  ]
  },
- "M4_territorios_desarrollo_areas": {
+ "M4_buffer_territorios_franja": {
   "tipo": "pol",
-  "color": "#FAD778",
+  "color": "#F9DEA0",
   "tam": 0.5,
-  "transp": 40,
-  "etiqueta": "Territorio de menor desarrollo metropolitano (franja)"
+  "transp": 25,
+  "etiqueta": "Territorio de menor desarrollo: franja (buffer 1,2 km)",
+  "alias": [
+   "Territorios de menor desarrollo - franja (buffer 1,2 km)",
+   "Territorios de menor desarrollo metropolitano"
+  ]
  },
- "M4_areas_influencia_subcentros": {
+ "M4_buffer_territorios_nodos": {
   "tipo": "pol",
-  "color": "#F0A06E",
+  "color": "#F5C35F",
   "tam": 0.5,
-  "transp": 40,
-  "etiqueta": "Área de influencia - subcentro y nodo metropolitano"
+  "transp": 30,
+  "etiqueta": "Territorio de menor desarrollo: nodos (buffer 2 km)",
+  "alias": [
+   "Territorios de menor desarrollo - nodos (buffer 2 km)",
+   "Territorios de menor desarrollo - nodos"
+  ]
+ },
+ "M4_buffer_subcentros": {
+  "tipo": "pol",
+  "color": "#F07828",
+  "tam": 0.5,
+  "transp": 50,
+  "etiqueta": "Subcentro y nodo metropolitano (buffer 2,8 km)",
+  "alias": [
+   "Subcentros y nodos metropolitanos (buffer 2,8 km)",
+   "Subcentralidades metropolitanas estratégicas"
+  ]
+ },
+ "M4_buffer_distritos": {
+  "tipo": "pol",
+  "color": "#AF4619",
+  "tam": 0.5,
+  "transp": 45,
+  "etiqueta": "Distrito de regeneración urbana (buffer 3 km)",
+  "alias": [
+   "Distritos de regeneración urbana (buffer 3 km)",
+   "Regeneración integral distritos urbanos"
+  ]
  },
  "M4_conexion_01_02": {
   "tipo": "lin",
-  "color": "#243168",
-  "tam": 1.5,
+  "color": "#5A3214",
+  "tam": 1.6,
   "transp": 0,
-  "etiqueta": "Conexión entre subcentros"
+  "etiqueta": "Conexión entre subcentros 01 y 02",
+  "alias": [
+   "Conexión entre subcentros 01 y 02"
+  ],
+  "trazo": "4 5"
+ },
+ "M4_subcentros_distritos": {
+  "tipo": "pt",
+  "color": "#F06400",
+  "tam": 9,
+  "transp": 0,
+  "etiqueta": "Subcentro o distrito",
+  "alias": [
+   "Subcentros y distritos"
+  ],
+  "variantes": {
+   "campo": "categoria",
+   "valores": {
+    "Subcentro y nodo metropolitano": {
+     "color": "#F06400",
+     "etiqueta": "Subcentro y nodo metropolitano"
+    },
+    "Distrito de regeneración urbana": {
+     "color": "#BE3C0A",
+     "etiqueta": "Distrito de regeneración urbana"
+    }
+   }
+  }
  },
  "M4_territorios_desarrollo": {
   "tipo": "pt",
   "color": "#F0AA1E",
-  "tam": 8.0,
+  "tam": 8,
   "transp": 0,
-  "etiqueta": "Plan de desarrollo territorial (nodo)"
+  "etiqueta": "Plan de desarrollo territorial (nodo)",
+  "alias": [
+   "Planes de desarrollo territorial (nodos)",
+   "Nodos de desarrollo territorial"
+  ]
  },
- "M4_subcentros_distritos": {
-  "tipo": "pt",
-  "color": "#E65A0A",
-  "tam": 10.0,
+ "M4_ejes_territorios": {
+  "tipo": "lin",
+  "color": "#F0AA1E",
+  "tam": 1,
   "transp": 0,
-  "etiqueta": "Subcentro y nodo metropolitano"
+  "etiqueta": "Eje de la franja",
+  "alias": [
+   "Ejes de las franjas 18 y 19 (base de los buffers)"
+  ],
+  "oculta": true
+ },
+ "M1_etiquetas_numeros": {
+  "tipo": "pt",
+  "color": "#FFFFFF",
+  "tam": 1,
+  "transp": 100,
+  "etiqueta": "Número de iniciativa",
+  "alias": [
+   "Iniciativa",
+   "Iniciativas",
+   "Etiquetas (n.º de iniciativa)"
+  ],
+  "oculta": true,
+  "ancla": true
+ },
+ "M2_etiquetas_numeros": {
+  "tipo": "pt",
+  "color": "#FFFFFF",
+  "tam": 1,
+  "transp": 100,
+  "etiqueta": "Número de iniciativa",
+  "alias": [
+   "Iniciativa",
+   "Iniciativas",
+   "Etiquetas (n.º de iniciativa)"
+  ],
+  "oculta": true,
+  "ancla": true
+ },
+ "M3_etiquetas_numeros": {
+  "tipo": "pt",
+  "color": "#FFFFFF",
+  "tam": 1,
+  "transp": 100,
+  "etiqueta": "Número de iniciativa",
+  "alias": [
+   "Iniciativa",
+   "Iniciativas",
+   "Etiquetas (n.º de iniciativa)"
+  ],
+  "oculta": true,
+  "ancla": true
+ },
+ "M4_etiquetas_numeros": {
+  "tipo": "pt",
+  "color": "#FFFFFF",
+  "tam": 1,
+  "transp": 100,
+  "etiqueta": "Número de iniciativa",
+  "alias": [
+   "Iniciativa",
+   "Iniciativas",
+   "Etiquetas (n.º de iniciativa)"
+  ],
+  "oculta": true,
+  "ancla": true
  },
  "V_areas_agricolas_prioritarias": {
   "tipo": "pol",
-  "color": "#AABE6E",
+  "color": "#96AF50",
   "tam": 0.5,
   "transp": 45,
-  "etiqueta": "Áreas agrícolas prioritarias"
+  "etiqueta": "Áreas agrícolas prioritarias",
+  "alias": [
+   "Áreas agrícolas prioritarias"
+  ],
+  "achurado": true
  },
- "V_corredores_ecologicos": {
+ "V_buffer_corredores_franja": {
+  "tipo": "pol",
+  "color": "#D6E8BE",
+  "tam": 0.5,
+  "transp": 15,
+  "etiqueta": "Corredores ecológicos: franja exterior (buffer)",
+  "alias": [
+   "Corredores ecológicos - franja exterior (buffer)"
+  ]
+ },
+ "V_buffer_corredores_nucleo": {
+  "tipo": "pol",
+  "color": "#9BBD77",
+  "tam": 0.5,
+  "transp": 20,
+  "etiqueta": "Corredores ecológicos, ríos, humedales y quebradas (buffer)",
+  "alias": [
+   "Corredores ecológicos, ríos, humedales y quebradas (buffer)"
+  ]
+ },
+ "V_ejes_corredores": {
   "tipo": "lin",
-  "color": "#6EA564",
-  "tam": 4.0,
-  "transp": 10,
-  "etiqueta": "Corredores ecológicos, ríos, humedales y quebradas"
+  "color": "#2E75B6",
+  "tam": 1,
+  "transp": 0,
+  "etiqueta": "Eje de corredor ecológico",
+  "alias": [
+   "Ejes de los corredores ecológicos (base de los buffers)"
+  ],
+  "oculta": true
  }
 }
