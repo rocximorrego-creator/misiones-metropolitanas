@@ -353,8 +353,16 @@ function styleFor(capa, hex){
 const ORDER = {pol:0, lin:1, pt:2};
 function baseMap(div, key){
   const map = L.map(div, {scrollWheelZoom:false, zoomSnap:.25, attributionControl:true});
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {subdomains:"abcd", maxZoom:19,
-    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'}).addTo(map);
+  /* Mapas base gratuitos, sin clave. Se elige con el botón de capas (arriba a la derecha). */
+  const esri = "https://server.arcgisonline.com/ArcGIS/rest/services/";
+  const gris = L.layerGroup([
+    L.tileLayer(esri+"Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {maxNativeZoom:16, maxZoom:19, attribution:"Mapa base: Esri, HERE, Garmin, &copy; OpenStreetMap"}),
+    L.tileLayer(esri+"Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {maxNativeZoom:16, maxZoom:19})
+  ]);
+  const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'});
+  const sat = L.tileLayer(esri+"World_Imagery/MapServer/tile/{z}/{y}/{x}", {maxNativeZoom:18, maxZoom:19, attribution:"Imágenes: Esri, Maxar, Earthstar Geographics"});
+  gris.addTo(map);
+  L.control.layers({"Gris claro":gris, "Calles (OpenStreetMap)":osm, "Satélite":sat}, null, {position:"topright"}).addTo(map);
   map.on("click focus", ()=>map.scrollWheelZoom.enable());
   map.on("mouseout", ()=>map.scrollWheelZoom.disable());
   map.createPane("doc"); map.getPane("doc").style.zIndex = 350;
@@ -544,7 +552,7 @@ function renderMission(m){
     const btn=list.querySelector(`.ini[data-n="${n}"]`); if (btn) btn.scrollIntoView({block:"nearest",behavior:"smooth"});
     if (!lyrs) return;
     const b=L.latLngBounds([]); lyrs.forEach(g=>b.extend(g.getBounds()));
-    if (fly){ map.flyToBounds(b,{padding:[50,50], maxZoom:14, duration:.7});
+    if (fly){ map.flyToBounds(b,{padding:[50,50], maxZoom:15, duration:.7});
       const r=$("#lmap",v).getBoundingClientRect(); if (r.bottom<0 || r.top>window.innerHeight) $("#lmap",v).scrollIntoView({behavior:"smooth",block:"center"}); }
     const cats=[...new Set(lyrs.map(g=>STY[g.getLayers()[0]._capa]?.etiqueta).filter(Boolean))];
     const notas=[...new Set(lyrs.map(g=>g.getLayers()[0]._f.properties.nota).filter(Boolean))];
