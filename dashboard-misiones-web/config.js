@@ -30,6 +30,7 @@ window.CONFIG = {
     ejes:       "datos/ejes.csv",
     iniciativas:"datos/iniciativas.csv",
     actores:    "datos/actores_especificos.csv",
+    descripciones: "datos/actores_descripcion.csv",
 
     /* Capas del mapa (GeoJSON). También aceptan una capa de ArcGIS Online (/FeatureServer/0). */
     mapa_m1:     "datos/mapa_m1.geojson",

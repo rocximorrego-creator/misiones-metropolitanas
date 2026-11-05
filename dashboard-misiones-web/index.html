@@ -187,6 +187,8 @@ const COMMON = {
   tec:[["DIPLADER","diplader"],["DAM","dam"]],
   ope:[["Divisiones GORE RM","divisiones"],["Municipios","municipios"],["Servicios sectoriales","servicios"]]
 };
+/* Descripción de cada actor (se muestra al hacer clic). Se lee de datos/actores_descripcion.csv. */
+const DESC = {};
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const el = (tag, attrs={}, html) => { const e=document.createElement(tag); for (const [k,v] of Object.entries(attrs)) { if (k==="style") e.style.cssText=v; else e.setAttribute(k,v); } if (html!==undefined) e.innerHTML=html; return e; };
@@ -639,12 +641,12 @@ function renderMission(m){
   const list=$("#list",v), filters=$("#filters",v);
   const ejesIni=[...new Set(m.ini.map(i=>i[0]))].sort((a,b)=>(a||99)-(b||99));
   [0,...ejesIni.filter(e=>e!==0)].forEach(e=>{
-    const b=el("button",{class:"fbtn","aria-pressed":String(e===0),"data-e":e}, e===0?`Todas (${m.ini.length})`:`E${e}`);
+    const b=el("button",{class:"fbtn","aria-pressed":String(e===0),"data-e":e}, e===0?`Todas (${m.ini.length})`:`Eje ${e}`);
     b.title = e===0 ? "Mostrar todas" : (m.ejes[e]||"");
     b.onclick=()=>setFilter(e, false); filters.append(b);
   });
   ejesIni.forEach(e=>{
-    const g=el("div",{class:"grp","data-e":e}); g.append(el("h5",{},esc(e?`E${e}. ${m.ejes[e]||""}`:m.ejes[0])));
+    const g=el("div",{class:"grp","data-e":e}); g.append(el("h5",{},esc(e?`Eje ${e}. ${m.ejes[e]||""}`:m.ejes[0])));
     const ul=el("ul");
     m.ini.forEach(it=>{ if(it[0]!==e) return;
       const geo = !!byNum[it[1]];
@@ -697,7 +699,7 @@ function renderMission(m){
     const cats=[...new Set(lyrs.map(g=>{ const l=g.getLayers()[0], s=STY[l._capa]; return s && !s.oculta ? styleOf(l._capa, l._f.properties).etiqueta : null; }).filter(Boolean))];
     const notas=[...new Set(lyrs.map(g=>g.getLayers()[0]._f.properties.nota).filter(Boolean))];
     const e=ejeOf[n];
-    const html=`<div class="pop"><b>${n}.</b> ${esc(nameOf[n]||"")}<br><span class="k">${e?`E${e}. ${esc(m.ejes[e]||"")}`:"Sin descripción en el listado"}</span>${cats.length?`<br><span class="k">${esc(cats.join(" · "))}</span>`:""}${notas.length?`<br><span class="k"><i>${esc(notas.join(" · "))}</i></span>`:""}</div>`;
+    const html=`<div class="pop"><b>${n}.</b> ${esc(nameOf[n]||"")}<br><span class="k">${e?`Eje ${e}. ${esc(m.ejes[e]||"")}`:"Sin descripción en el listado"}</span>${cats.length?`<br><span class="k">${esc(cats.join(" · "))}</span>`:""}${notas.length?`<br><span class="k"><i>${esc(notas.join(" · "))}</i></span>`:""}</div>`;
     L.popup({autoPan:true, maxWidth:280, offset:[0,-6]}).setLatLng(at || labels[n]?.getLatLng() || b.getCenter()).setContent(html).openOn(map);
   }
   map.on("click", ()=>select(null));
@@ -722,7 +724,8 @@ function renderMission(m){
   function pick(b,name,esp){
     clear(); b.classList.add("sel");
     const en = esp ? M.filter(x=>x.esp.includes(name)) : (name.startsWith("COSOC") ? M.filter(x=>x.cosoc) : M);
-    info.innerHTML=`<b>${esc(name)}</b> ${esp?"es una instancia específica":"es un actor común"} del modelo. Participa en:<span class="dots">${en.map(x=>`<i style="background:${x.color}" title="${esc(x.name)}">M${x.id}</i>`).join("")}</span>`;
+    const d = DESC[name];
+    info.innerHTML=`${d?`<b>${esc(name)}.</b> ${esc(d)}<br>`:""}<b>${esc(name)}</b> ${esp?"es una instancia específica":"es un actor común"} del modelo. Participa en:<span class="dots">${en.map(x=>`<i style="background:${x.color}" title="${esc(x.name)}">M${x.id}</i>`).join("")}</span>`;
   }
 }
 
@@ -831,6 +834,8 @@ function renderVision(){
     if (!window.L) throw new Error("No se pudo cargar la librería del mapa (Leaflet).");
     const names=["misiones","metas","ejes","iniciativas","actores"];
     const tabsData = Object.fromEntries(await Promise.all(names.map(async n=>[n, await loadTable(n)])));
+    CFG.fuentes.descripciones = CFG.fuentes.descripciones || "datos/actores_descripcion.csv";
+    try { (await loadTable("descripciones")).forEach(r=>{ if (r.actor && r.descripcion) DESC[String(r.actor).trim()]=String(r.descripcion).trim(); }); } catch(err){ console.warn("Sin descripciones de actores:", err.message); }
     const [sty, lim] = await Promise.all([
       getText(CFG.fuentes.estilos).then(JSON.parse).catch(()=>({})),
       getText(CFG.fuentes.limites_doc).then(JSON.parse).catch(()=>({}))
